@@ -1,0 +1,28 @@
+idea:
+  title: 'Reasoning Trace Length as a Proxy for Robustness: A Systematic Investigation'
+  domain: nlp
+  hypothesis: "There exists a non-monotonic relationship between reasoning trace length\
+    \ and out-of-distribution (OOD) robustness in large language models: both overly\
+    \ short and overly verbose traces can harm performance, and the optimal trace\
+    \ length may depend on task distribution. Adaptive trace length controls\u2014\
+    potentially informed by uncertainty\u2014will outperform fixed-length approaches\
+    \ in maximizing generalization.\n"
+  background:
+    description: 'Does a longer or more detailed reasoning chain always mean better
+      generalization? Systematically vary and constrain reasoning trace lengths in
+      LLMs to see how this influences OOD performance and uncertainty expression,
+      challenging the assumption that shorter is always better.
+
+      '
+    papers:
+    - description: '"Why Does Self-Distillation (Sometimes) Degrade the Reasoning
+        Capability of LLMs?" J. Kim, X. Luo, M. Kim, S. Lee, D. Kim, J. Jeon, D. Li,
+        & Y. Yang (2026).'
+  metadata:
+    source: IdeaHub
+    source_url: https://hypogenic.ai/ideahub/idea/65D4rB1XfPVz8ZUB5yx8
+    idea_id: reasoning_trace_length_as_a_pr_20260406_024739_46d66eb8
+    created_at: '2026-04-06T02:47:39.668236'
+    status: submitted
+    github_repo_name: reasoning-trace-robustnes-318e-codex
+    github_repo_url: https://github.com/Hypogenic-AI/reasoning-trace-robustnes-318e-codex
