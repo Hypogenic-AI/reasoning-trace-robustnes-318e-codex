@@ -1,34 +1,62 @@
 \section{Methodology}
-\label{sec:methodology}
-\para{Problem setup.}
-Given an input $x$ and gold label $y$, a trace policy $\pi$ controls both prompt constraints and generation budget for reasoning text. We evaluate five policies:
-\none (final answer only), \short ($\leq 2$ concise steps), \medium ($\sim 4$--6 steps), \longp ($\geq 8$ detailed steps), and \adaptive (short first pass with confidence-triggered escalation).
+\label{sec:method}
 
-For each policy $\pi$, we report split accuracy
+\subsection{Problem Formulation}
+\label{sec:formulation}
+
+We study the function $f: \gP \times \gD \rightarrow [0,1]$ mapping a reasoning policy $p \in \gP$ and a dataset $d \in \gD$ to an accuracy score, where $\gP = \{\pnone, \pshort, \pmedium, \plong, \padaptive\}$ and $\gD$ spans an in-distribution (ID) to out-of-distribution (OOD) gradient. We define the \newterm{robustness gap} as
 \begin{equation}
-\mathrm{Acc}_{s}(\pi)=\frac{1}{|\mathcal{D}_{s}|}\sum_{i\in\mathcal{D}_{s}}\mathbb{1}[\hat{y}_{i,\pi}=y_i], \quad s\in\{\mathrm{ID},\mathrm{OOD}\},
+\Delta(p) = f(p, d_{\text{ID}}) - f(p, d_{\text{OOD}}),
 \end{equation}
-and robustness gap
-\begin{equation}
-\mathrm{Gap}(\pi)=\mathrm{Acc}_{\mathrm{ID}}(\pi)-\mathrm{Acc}_{\mathrm{OOD}}(\pi).
-\end{equation}
-Lower gap is better.
+where lower values indicate better robustness. We also measure \newterm{token efficiency} $\eta(p) = \text{correct}(p) / \text{tokens}(p)$, the number of correct answers per 1,000 completion tokens.
 
-\subsection{Datasets and Evaluation Slice}
-We use pre-downloaded benchmark datasets with a fixed seed ($42$): \gsm as \id and \arc, three \bbh tasks (date understanding, logical deduction with three objects, multistep arithmetic two), and \mathfive as \ood.
-The evaluation slice contains 48 examples total: 18 \id and 30 \ood (6 from each \ood dataset).
+\subsection{Reasoning Policies}
+\label{sec:policies}
 
-Data quality checks show no missing questions, no missing gold labels, and no duplicate IDs in the evaluation slice. Answer types are numeric (24), multiple-choice letter (18), and short text (6).
+We define five prompt-based policies that control reasoning trace length while keeping the underlying model identical:
 
-\subsection{Inference and Parsing Protocol}
-All policies use real \gptfourone API calls with temperature $0.2$ and a strict JSON output contract containing `reasoning', `final\_answer', `confidence', and `uncertainty\_note'.
-We normalize targets and predictions by answer type: numeric extraction for arithmetic-style datasets, option-letter extraction for multiple-choice tasks, and normalized string matching for text outputs (including strict matching fallback for \mathfive symbolic answers).
+\begin{enumerate}[leftmargin=*,itemsep=2pt,topsep=2pt]
+    \item \textbf{\pnone} (max 100 tokens): The model outputs only a direct final answer with no reasoning.
+    \item \textbf{\pshort} (max 300 tokens): At most 1--2 brief reasoning sentences before the answer.
+    \item \textbf{\pmedium} (max 800 tokens): Standard chain-of-thought with 4--6 reasoning steps.
+    \item \textbf{\plong} (max 2,000 tokens): Detailed reasoning with 8+ steps including self-verification and error checking.
+    \item \textbf{\padaptive}: First attempts \pshort reasoning with a self-reported confidence score. If confidence $< 0.70$, retries with \plong reasoning. This tests whether uncertainty-aware escalation can combine the efficiency of short reasoning with the depth of long reasoning.
+\end{enumerate}
 
-\subsection{Adaptive Escalation Rule}
-\adaptive first runs the \short policy and reads self-reported confidence $c\in[0,1]$. If $c < \tau$, it triggers a second-pass long-form solve; otherwise it keeps the first answer. We set threshold $\tau=0.98$ to ensure non-trivial escalation behavior. In the observed run, second-pass invocation rate is approximately 10.4\%.
+All policies share an identical answer extraction format (\texttt{ANSWER: <response>}), ensuring that accuracy differences reflect reasoning quality rather than parsing artifacts. We use deterministic decoding (temperature $= 0$) to eliminate sampling variance.
 
-\subsection{Metrics and Statistical Tests}
-We report: (i) accuracy on \id and \ood, (ii) robustness gap, (iii) average token usage, and (iv) calibration via Brier score and 10-bin \ece from self-reported confidence. For pairwise comparisons on shared \ood items, we compute paired bootstrap confidence intervals and McNemar tests with Benjamini--Hochberg correction.
+\subsection{Datasets}
+\label{sec:datasets}
 
-\subsection{Implementation Details}
-The evaluation harness is implemented in Python 3.12.8 with `openai' 2.30.0, `datasets' 4.8.4, `numpy' 2.4.4, `pandas' 3.0.2, `scipy' 1.17.1, and `statsmodels' 0.14.6. Full run time for 48 examples across five policies is about six minutes.
+We select five established benchmarks spanning an ID-to-OOD gradient (\tabref{tab:datasets}). \gsmk serves as the in-distribution anchor: it requires multi-step arithmetic reasoning that aligns well with standard \CoT prompting. \mathfive represents near-OOD transfer (harder math, different problem styles). The three far-OOD datasets (\arcc, \mmlustem, \csqa) test generalization to entirely different reasoning domains---science, STEM knowledge, and commonsense.
+
+\begin{table}[t]
+    \centering
+    \caption{Dataset characteristics. We sample 50 questions per dataset (random seed 42), totaling 250 unique questions. The ID/OOD classification reflects domain similarity to \gsmk.}
+    \label{tab:datasets}
+    \begin{tabular}{@{}llccl@{}}
+        \toprule
+        \textbf{Dataset} & \textbf{Domain} & \textbf{Format} & \textbf{$n$} & \textbf{Role} \\
+        \midrule
+        \gsmk & Grade-school math & Free-response & 50 & ID \\
+        \mathfive & Competition math & Free-response & 50 & OOD-near \\
+        \arcc & Science QA & Multiple-choice & 50 & OOD-far \\
+        \mmlustem & Multi-subject STEM & Multiple-choice & 50 & OOD-far \\
+        \csqa & Commonsense reasoning & Multiple-choice & 50 & OOD-far \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Evaluation Protocol}
+\label{sec:eval}
+
+\para{Answer extraction.} We parse model outputs using regex-based extraction targeting the \texttt{ANSWER:} pattern, with fallback to the last line of the response. Answers are normalized by stripping whitespace, removing formatting artifacts, and applying numeric comparison for mathematical answers.
+
+\para{Metrics.} We report: (1)~\textbf{Accuracy}: exact-match after normalization; (2)~\textbf{Robustness gap}: $\Delta = \text{Acc}_{\text{ID}} - \text{Acc}_{\text{OOD}}$; (3)~\textbf{Token efficiency}: correct answers per 1,000 completion tokens; (4)~\textbf{Calibration}: expected calibration error ($\ece$) and Brier score for the \padaptive policy's self-reported confidence.
+
+\para{Statistical testing.} We use pairwise McNemar tests on shared items with Benjamini-Hochberg correction ($\alpha = 0.05$) for all policy comparisons.
+
+\subsection{Models and Implementation}
+\label{sec:models}
+
+Our primary experiment uses \nano (1,250 API calls: 5 policies $\times$ 250 questions). We run a confirmatory experiment on \mini (400 calls: 4 policies $\times$ 100 questions, 20 per dataset) to test whether findings generalize across model sizes. Both models use temperature $= 0$ for deterministic outputs. The evaluation harness is implemented in Python 3.12 with the OpenAI SDK, NumPy, SciPy, Matplotlib, and Seaborn. All outputs are logged to JSONL files with resume-capable deduplication.

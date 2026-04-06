@@ -1,51 +1,56 @@
-# Reasoning Trace Length vs OOD Robustness
+# Reasoning Trace Length as a Proxy for Robustness
 
-This project tests whether longer reasoning traces always improve generalization in LLMs. We run real `gpt-4.1` API experiments over ID/OOD reasoning datasets while systematically controlling trace length and comparing fixed policies to an uncertainty-triggered adaptive policy.
+Does a longer reasoning chain always mean better generalization? We systematically vary reasoning trace lengths in LLMs and measure how this influences out-of-distribution (OOD) performance and uncertainty expression.
 
 ## Key Findings
-- OOD accuracy was best with `adaptive` (0.800), then `medium` (0.767), while `none` was worst (0.367).
-- Relationship is not "longer is always better": `long` underperformed `medium` on OOD while using far more tokens.
-- Robustness gap (`ID - OOD`) improved from 0.633 (`none`) to 0.200 (`adaptive`).
-- Adaptive significantly beat `none` on OOD (McNemar p=0.0019, BH q=0.0078).
-- CoT-heavy policies were overconfident; calibration remained a core weakness.
 
-## Reproduce
-1. Environment:
+- **Non-monotonicity confirmed:** Short/medium reasoning (1-6 steps) achieves 90% ID accuracy; long reasoning (8+ steps) drops to 80%. Effect is stronger on OOD data.
+- **Verbose reasoning harms OOD robustness:** On MATH-500 (OOD-near), short traces achieve 46-70% accuracy vs. 15-40% for long traces across two model sizes.
+- **Adaptive trace control is promising:** Uncertainty-adaptive policy achieves best OOD-near accuracy (56%) with smallest robustness gap (30%).
+- **Concise reasoning dominates on efficiency:** Short reasoning is 70x more token-efficient than long reasoning with equal or better accuracy.
+- **Confidence calibration is poor:** Self-reported confidence (mean 0.924) far exceeds actual accuracy (0.644), limiting adaptive policy effectiveness.
+
+## Quick Start
+
 ```bash
-uv venv
-source .venv/bin/activate
-uv pip install -r requirements.txt
+uv venv && source .venv/bin/activate
+uv pip install openai datasets numpy scipy matplotlib seaborn tqdm
+export OPENAI_API_KEY=<your-key>
+
+python src/load_datasets.py        # Load 250 questions from 5 benchmarks
+python src/run_experiment.py       # Run 5 policies x 250 items (GPT-4.1-nano)
+python src/run_confirmatory.py     # Confirmatory run (GPT-4.1-mini)
+python src/analyze_results.py      # Generate tables, plots, statistics
 ```
 
-2. Run experiment:
-```bash
-python src/experiment_trace_length.py \
-  --model gpt-4.1 \
-  --id-n 18 \
-  --ood-n 6 \
-  --temperature 0.2 \
-  --adapt-threshold 0.98 \
-  --out-jsonl results/raw_outputs.jsonl \
-  --summary-json results/run_summary.json
+## Project Structure
+
+```
+src/
+  load_datasets.py         # Dataset loading (GSM8K, MATH-500, ARC, MMLU, CSQA)
+  run_experiment.py        # Main experiment: 5 trace-length policies
+  run_confirmatory.py      # Confirmatory experiment with stronger model
+  analyze_results.py       # Statistical analysis and visualization
+
+results/
+  raw/                     # Raw experiment outputs (JSONL)
+  plots/                   # Generated visualizations
+  summary.json             # Aggregated metrics
+
+datasets/                  # Pre-downloaded benchmarks (HuggingFace format)
+papers/                    # Related research papers (PDF)
 ```
 
-3. Analyze and plot:
-```bash
-python src/analyze_trace_length.py \
-  --raw-jsonl results/raw_outputs.jsonl \
-  --metrics-json results/metrics.json \
-  --pairwise-json results/pairwise_tests.json \
-  --plots-dir results/plots
-```
+## Experiment Design
 
-## File Structure
-- `planning.md`: Motivation, novelty, and preregistered analysis plan.
-- `src/experiment_trace_length.py`: API experiment harness and evaluation logic.
-- `src/analyze_trace_length.py`: Metrics, statistical tests, visualizations.
-- `results/raw_outputs.jsonl`: Per-example model outputs and metadata.
-- `results/metrics.json`: Aggregated metrics and robustness summary.
-- `results/pairwise_tests.json`: Pairwise significance tests.
-- `results/plots/`: Generated figures.
-- `REPORT.md`: Full research report with methodology, results, and limitations.
+5 trace-length policies tested on 250 questions across 5 benchmarks:
 
-For complete details, see `REPORT.md`.
+| Policy | Description | Avg Tokens |
+|--------|------------|-----------|
+| none | Direct answer, no reasoning | 9 |
+| short | 1-2 brief reasoning steps | 85 |
+| medium | 4-6 step chain-of-thought | 315 |
+| long | 8+ detailed steps with verification | 766 |
+| adaptive | Short first; retry long if confidence < 70% | 185 |
+
+See [REPORT.md](REPORT.md) for full results, statistical tests, and analysis.

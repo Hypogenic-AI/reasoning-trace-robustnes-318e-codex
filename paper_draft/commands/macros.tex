@@ -1,24 +1,57 @@
 %%%%% PROJECT-SPECIFIC MACROS %%%%%
+% Define your project-specific terms here
+% Import with: \input{commands/macros}
+
 \usepackage{xspace}
 
-% Method and policy names
-\newcommand{\tracebench}{\textsc{TraceBench}\xspace}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% METHOD NAMES
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 \newcommand{\adaptive}{\textsc{Adaptive}\xspace}
-\newcommand{\none}{\textsc{None}\xspace}
-\newcommand{\short}{\textsc{Short}\xspace}
-\newcommand{\medium}{\textsc{Medium}\xspace}
-\newcommand{\longp}{\textsc{Long}\xspace}
 
-% Dataset names
-\newcommand{\gsm}{\textsc{GSM8K}\xspace}
-\newcommand{\arc}{\textsc{ARC-Challenge}\xspace}
-\newcommand{\bbh}{\textsc{BBH}\xspace}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% DATASET NAMES
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newcommand{\gsmk}{\textsc{GSM8K}\xspace}
 \newcommand{\mathfive}{\textsc{MATH-500}\xspace}
+\newcommand{\arcc}{\textsc{ARC-Challenge}\xspace}
+\newcommand{\mmlustem}{\textsc{MMLU-STEM}\xspace}
+\newcommand{\csqa}{\textsc{CommonsenseQA}\xspace}
 
-% Model names
-\newcommand{\gptfourone}{\textsc{GPT-4.1}\xspace}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% MODEL NAMES
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Metrics
-\newcommand{\ood}{\textsc{OOD}\xspace}
-\newcommand{\id}{\textsc{ID}\xspace}
-\newcommand{\ece}{\textsc{ECE}\xspace}
+\newcommand{\nano}{\textsc{GPT-4.1-nano}\xspace}
+\newcommand{\mini}{\textsc{GPT-4.1-mini}\xspace}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% POLICY NAMES
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newcommand{\pnone}{\textsc{None}\xspace}
+\newcommand{\pshort}{\textsc{Short}\xspace}
+\newcommand{\pmedium}{\textsc{Medium}\xspace}
+\newcommand{\plong}{\textsc{Long}\xspace}
+\newcommand{\padaptive}{\textsc{Adaptive}\xspace}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% ABBREVIATIONS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newcommand{\ie}{i.e.,\xspace}
+\newcommand{\eg}{e.g.,\xspace}
+\newcommand{\cf}{cf.\xspace}
+\newcommand{\wrt}{w.r.t.\xspace}
+\newcommand{\ood}{OOD\xspace}
+\newcommand{\id}{ID\xspace}
+\newcommand{\CoT}{CoT\xspace}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% DOMAIN-SPECIFIC TERMS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newcommand{\ece}{\text{ECE}}
+\newcommand{\brier}{\text{Brier}}

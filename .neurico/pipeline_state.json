@@ -3,8 +3,8 @@
   "stages": {
     "resource_finder": {
       "status": "completed",
-      "started_at": "2026-04-06T02:47:45.847419",
-      "completed_at": "2026-04-06T02:58:04.223445",
+      "started_at": "2026-04-06T02:47:44.990477",
+      "completed_at": "2026-04-06T03:15:22.349164",
       "success": true,
       "outputs": {
         "literature_review": "/workspaces/reasoning-trace-robustnes-318e-codex/literature_review.md",
@@ -16,19 +16,19 @@
     },
     "experiment_runner": {
       "status": "completed",
-      "started_at": "2026-04-06T02:58:04.223758",
-      "completed_at": "2026-04-06T03:19:18.902089",
+      "started_at": "2026-04-06T03:15:22.349546",
+      "completed_at": "2026-04-06T04:23:34.119490",
       "success": true,
       "outputs": {
         "success": true,
         "return_code": 0,
-        "elapsed_time": 1274.6639258861542,
-        "log_file": "/workspaces/reasoning-trace-robustnes-318e-codex/logs/execution_codex.log",
-        "transcript_file": "/workspaces/reasoning-trace-robustnes-318e-codex/logs/execution_codex_transcript.jsonl"
+        "elapsed_time": 4091.756247282028,
+        "log_file": "/workspaces/reasoning-trace-robustnes-318e-codex/logs/execution_claude.log",
+        "transcript_file": "/workspaces/reasoning-trace-robustnes-318e-codex/logs/execution_claude_transcript.jsonl"
       }
     }
   },
   "current_stage": null,
   "completed": true,
-  "completed_at": "2026-04-06T03:19:18.902493"
+  "completed_at": "2026-04-06T04:23:34.120321"
 }

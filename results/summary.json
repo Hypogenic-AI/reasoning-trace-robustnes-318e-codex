@@ -1,0 +1,78 @@
+{
+  "n_results": 1250,
+  "policy_counts": {
+    "none": 250,
+    "short": 250,
+    "medium": 250,
+    "long": 250,
+    "adaptive": 250
+  },
+  "gap_data": {
+    "none": {
+      "id": 0.28,
+      "ood_near": 0.22,
+      "ood_far": 0.6466666666666666,
+      "gap_near": 0.060000000000000026,
+      "gap_far": -0.3666666666666666
+    },
+    "short": {
+      "id": 0.9,
+      "ood_near": 0.46,
+      "ood_far": 0.64,
+      "gap_near": 0.44,
+      "gap_far": 0.26
+    },
+    "medium": {
+      "id": 0.9,
+      "ood_near": 0.52,
+      "ood_far": 0.58,
+      "gap_near": 0.38,
+      "gap_far": 0.32000000000000006
+    },
+    "long": {
+      "id": 0.8,
+      "ood_near": 0.4,
+      "ood_far": 0.54,
+      "gap_near": 0.4,
+      "gap_far": 0.26
+    },
+    "adaptive": {
+      "id": 0.86,
+      "ood_near": 0.56,
+      "ood_far": 0.6,
+      "gap_near": 0.29999999999999993,
+      "gap_far": 0.26
+    }
+  },
+  "token_data": {
+    "none": {
+      "mean": 9.364,
+      "median": 6.0,
+      "efficiency": 52.11448099102947
+    },
+    "short": {
+      "mean": 85.3,
+      "median": 54.0,
+      "efficiency": 7.690504103165299
+    },
+    "medium": {
+      "mean": 315.056,
+      "median": 227.5,
+      "efficiency": 2.0059925854451275
+    },
+    "long": {
+      "mean": 765.456,
+      "median": 646.5,
+      "efficiency": 0.7368157020129178
+    },
+    "adaptive": {
+      "mean": 185.016,
+      "median": 82.0,
+      "efficiency": 3.4807800406451337
+    }
+  },
+  "calibration": {
+    "ece": 0.25798816568047345,
+    "brier": 0.29102999999999996
+  }
+}

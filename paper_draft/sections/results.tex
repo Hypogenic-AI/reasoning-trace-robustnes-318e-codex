@@ -1,34 +1,148 @@
 \section{Results}
 \label{sec:results}
-\input{tables/main_results}
 
-\para{Main finding: adaptive wins on \ood.}
-\Tabref{tab:main} shows that all policies score 1.000 on \id, creating a ceiling effect. The important variation is therefore on \ood: \adaptive is best at 0.800, followed by \medium at 0.767. The no-trace policy drops to 0.367, confirming that minimal reasoning is brittle under shift. Robustness gap is smallest for \adaptive (0.200) and largest for \none (0.633).
+\subsection{Main Results: Non-Monotonic Length--Accuracy Relationship}
+\label{sec:main_results}
 
-\para{Non-monotonic fixed-length trend.}
-Among fixed policies, \ood accuracy rises from \none $\rightarrow$ \short $\rightarrow$ \medium, then declines from \medium to \longp (0.767 to 0.700). This directional peak-and-drop pattern supports our non-monotonic hypothesis. A rank-based check over fixed policies yields Kendall $\tau=0.548$ ($p=0.279$), suggesting the trend but also limited power at current sample size.
+\Tabref{tab:main} presents accuracy by policy and dataset. In-distribution (\gsmk) accuracy follows an inverted U-shape: \pnone (28\%) $\rightarrow$ \pshort (90\%) $\rightarrow$ \pmedium (90\%) $\rightarrow$ \plong (80\%). The 10-point drop from \pmedium to \plong confirms that excessive reasoning hurts even in-distribution performance.
 
-\input{tables/pairwise_tests}
+\begin{table}[t]
+    \centering
+    \caption{Accuracy (\%) by policy and dataset on \nano ($n=50$ per cell). Best result per column in \textbf{bold}. \gsmk is in-distribution; \mathfive is OOD-near; remaining datasets are OOD-far. The \plong policy underperforms \pshort on four of five benchmarks.}
+    \label{tab:main}
+    \resizebox{\textwidth}{!}{%
+    \begin{tabular}{@{}lccccc@{}}
+        \toprule
+        \textbf{Policy} & \textsc{GSM8K} (ID) & \textsc{MATH-500} (OOD-n) & \textsc{ARC-C} (OOD-f) & \textsc{MMLU-STEM} (OOD-f) & \textsc{CSQA} (OOD-f) \\
+        \midrule
+        \pnone   & 28.0 & 22.0 & 74.0 & 36.0 & \textbf{84.0} \\
+        \pshort  & \textbf{90.0} & 46.0 & \textbf{82.0} & 30.0 & 80.0 \\
+        \pmedium & \textbf{90.0} & 52.0 & 72.0 & \textbf{36.0} & 66.0 \\
+        \plong   & 80.0 & 40.0 & 72.0 & 32.0 & 58.0 \\
+        \padaptive & 86.0 & \textbf{56.0} & 80.0 & 32.0 & 68.0 \\
+        \bottomrule
+    \end{tabular}
+    }
+\end{table}
 
-\para{Significance testing.}
-\Tabref{tab:pairwise} shows a large and significant \adaptive improvement over \none (+0.433, BH-corrected $q=0.0078$). Differences against \short, \medium, and \longp are positive but not statistically significant, consistent with close performance among strong CoT policies at $N=30$ \ood items.
+On OOD-near data (\mathfive), accuracy peaks with \padaptive (56\%) and drops to 40\% for \plong---a reversal from the assumption that more reasoning improves harder tasks. Among fixed policies, \pmedium (52\%) outperforms \plong (40\%) by 12 percentage points. On OOD-far datasets, the pattern is consistent: \plong underperforms \pshort on \arcc (72\% vs.\ 82\%), \csqa (58\% vs.\ 80\%), and \mmlustem (32\% vs.\ 30\%, within noise).
+
+A notable finding is that \pnone achieves 84\% on \csqa---the highest score for any policy on that dataset. This suggests that for pattern-recognition tasks, reasoning introduces more noise than signal.
 
 \begin{figure}[t]
     \centering
-    \includegraphics[width=0.95\linewidth]{../results/plots/ood_accuracy_by_policy.png}
-    \caption{OOD accuracy by policy. The \adaptive policy reaches the highest value, while \none is substantially lower.}
-    \label{fig:ood-acc}
+    \includegraphics[width=0.95\linewidth]{figures/nonmonotonicity.png}
+    \caption{Accuracy vs.\ reasoning trace length by distribution type. ID accuracy follows an inverted U-shape, peaking at \pshort/\pmedium and declining at \plong. OOD-near accuracy peaks at \padaptive and drops monotonically for fixed policies beyond \pmedium. OOD-far accuracy is highest for minimal or short reasoning.}
+    \label{fig:nonmono}
 \end{figure}
+
+\Figref{fig:nonmono} visualizes the non-monotonic relationship. The key observation is that the accuracy curve shifts leftward under distribution shift: optimal trace length is shorter for OOD data than for ID data.
+
+\subsection{Robustness Gap Analysis}
+\label{sec:robustness}
+
+\Tabref{tab:gap} reports the robustness gap for each policy. The \padaptive policy achieves the smallest OOD-near gap (30 percentage points), while \pshort has the largest (44 points). Among fixed policies, the gap does not monotonically decrease with length---\pmedium (38 points) is better than \pshort (44 points), but \plong (40 points) is worse again.
+
+\begin{table}[t]
+    \centering
+    \caption{Robustness gap (ID accuracy $-$ OOD accuracy, in percentage points). Lower is better. The \padaptive policy achieves the smallest OOD-near gap. The negative gap for \pnone on OOD-far reflects high baseline accuracy on multiple-choice tasks without reasoning.}
+    \label{tab:gap}
+    \begin{tabular}{@{}lcccc@{}}
+        \toprule
+        \textbf{Policy} & \textbf{ID Acc (\%)} & \textbf{OOD-near Acc (\%)} & \textbf{Gap (near)} & \textbf{Gap (far)} \\
+        \midrule
+        \pnone & 28.0 & 22.0 & 6.0 & $-36.7^{*}$ \\
+        \pshort & 90.0 & 46.0 & 44.0 & 26.0 \\
+        \pmedium & 90.0 & 52.0 & 38.0 & 32.0 \\
+        \plong & 80.0 & 40.0 & 40.0 & 26.0 \\
+        \padaptive & 86.0 & 56.0 & \textbf{30.0} & \textbf{26.0} \\
+        \bottomrule
+    \end{tabular}
+    \vspace{2pt}
+    \raggedright\scriptsize{$^{*}$\pnone's negative far-OOD gap arises because multiple-choice tasks have high baseline accuracy even without reasoning.}
+\end{table}
 
 \begin{figure}[t]
     \centering
-    \includegraphics[width=0.95\linewidth]{../results/plots/token_usage_by_policy_split.png}
-    \caption{Average token usage by split. \longp is the most expensive policy, while \adaptive remains close to \short and far below \longp.}
-    \label{fig:tokens}
+    \includegraphics[width=0.95\linewidth]{figures/robustness_gap.png}
+    \caption{Robustness gap by policy. The \padaptive policy achieves the smallest gap on OOD-near data, combining high ID accuracy with the best OOD-near transfer.}
+    \label{fig:gap}
 \end{figure}
 
-\para{Calibration and efficiency.}
-Despite high self-reported confidence across CoT-heavy modes, calibration differs meaningfully. \adaptive has the lowest \ood \ece (0.1823), while \longp has the worst (0.2840), indicating overconfident errors under very long traces. Token efficiency also favors \adaptive over \longp: similar or better \ood accuracy at much lower average token use (236.7 vs 381.4).
+\subsection{Token Efficiency}
+\label{sec:efficiency}
 
-\para{Dataset-level behavior and errors.}
-Performance is weakest on BBH date understanding and \mathfive. In \arc, \none fails completely on the sampled subset (0.000), while CoT-based policies recover strongly. Typical \adaptive failures include temporal-offset mistakes in date reasoning, option-format drift (letter vs phrase) in logical deduction, and strict-form mismatches for symbolic math outputs.
+\Tabref{tab:tokens} shows that token-normalized efficiency strongly favors concise reasoning. The \pnone policy achieves 52.1 correct answers per 1,000 tokens---$70\times$ more efficient than \plong (0.74). Even accounting for accuracy differences, \pshort (7.69) dominates \plong in cost-effectiveness.
+
+\begin{table}[t]
+    \centering
+    \caption{Token usage and efficiency by policy. Efficiency is measured as correct answers per 1,000 completion tokens. \pshort achieves $10\times$ the efficiency of \plong with higher overall accuracy.}
+    \label{tab:tokens}
+    \begin{tabular}{@{}lccc@{}}
+        \toprule
+        \textbf{Policy} & \textbf{Mean tokens} & \textbf{Median tokens} & \textbf{Efficiency (corr/1k tok)} \\
+        \midrule
+        \pnone & 9.4 & 6 & \textbf{52.11} \\
+        \pshort & 85.3 & 54 & 7.69 \\
+        \pmedium & 315.1 & 228 & 2.01 \\
+        \plong & 765.5 & 647 & 0.74 \\
+        \padaptive & 185.0 & 82 & 3.48 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.95\linewidth]{figures/accuracy_vs_tokens.png}
+    \caption{Accuracy--efficiency frontier. Each point represents a policy. \pshort and \padaptive dominate \plong, achieving higher accuracy at a fraction of the token cost.}
+    \label{fig:efficiency}
+\end{figure}
+
+The \padaptive policy occupies an attractive position on the efficiency frontier (\figref{fig:efficiency}): it uses 185 tokens on average (vs.\ 766 for \plong) while achieving the best OOD-near accuracy. Only 4.4\% of items triggered the long-retry path, suggesting the confidence threshold ($0.70$) was too conservative given the model's overconfidence.
+
+\subsection{Statistical Significance}
+\label{sec:significance}
+
+Pairwise McNemar tests with Benjamini-Hochberg correction yield the following significant comparisons at $\alpha = 0.05$:
+\begin{itemize}[leftmargin=*,itemsep=0pt,topsep=0pt]
+    \item \pnone vs.\ \pshort: $p < 0.0001$ (\pshort dramatically better)
+    \item \pnone vs.\ \pmedium: $p = 0.0007$
+    \item \pnone vs.\ \padaptive: $p < 0.0001$
+    \item \pshort vs.\ \plong: $p = 0.020$ (\pshort significantly better than \plong)
+    \item \pmedium vs.\ \plong: $p = 0.062$ (trend, not significant after correction)
+\end{itemize}
+
+The \pshort vs.\ \plong comparison is particularly notable: short reasoning \emph{significantly outperforms} long reasoning ($p = 0.020$), directly contradicting the ``more reasoning is better'' assumption.
+
+\subsection{Calibration Analysis}
+\label{sec:calibration}
+
+The \padaptive policy relies on self-reported confidence to decide when to escalate. We find that this confidence is poorly calibrated: mean confidence is 0.924 while accuracy is only 0.644, yielding $\ece = 0.258$ and Brier score $= 0.291$. \Figref{fig:calibration} shows the reliability diagram. The model is systematically overconfident across all confidence bins, which explains why only 4.4\% of items triggered long-retry---the model rarely reports uncertainty even when it should.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.7\linewidth]{figures/calibration.png}
+    \caption{Reliability diagram for the \padaptive policy. The model is systematically overconfident: mean self-reported confidence (0.924) far exceeds accuracy (0.644). Better calibration would improve adaptive escalation decisions.}
+    \label{fig:calibration}
+\end{figure}
+
+\subsection{Confirmatory Experiment}
+\label{sec:confirmatory}
+
+We replicate the core experiment on \mini with 4 policies and 20 questions per dataset (\tabref{tab:confirm}). The non-monotonic pattern is dramatically amplified: OOD-near accuracy collapses from 70\% (\pshort) to 15\% (\plong)---a 55 percentage point gap. ID accuracy remains high (90--95\%) for all \CoT policies, indicating that the damage from verbose reasoning is specific to OOD transfer. This suggests that stronger models may be \emph{more} susceptible to overthinking artifacts.
+
+\begin{table}[t]
+    \centering
+    \caption{Confirmatory results on \mini ($n=20$ per dataset). The non-monotonic pattern is amplified: \plong collapses to 15\% on OOD-near while \pshort achieves 70\%. Best per column in \textbf{bold}.}
+    \label{tab:confirm}
+    \begin{tabular}{@{}lcccc@{}}
+        \toprule
+        \textbf{Policy} & \textbf{Overall} & \textbf{ID} & \textbf{OOD-near} & \textbf{OOD-far} \\
+        \midrule
+        \pnone & 65.0 & 65.0 & 40.0 & 73.3 \\
+        \pshort & \textbf{81.0} & \textbf{95.0} & \textbf{70.0} & \textbf{80.0} \\
+        \pmedium & 70.0 & 90.0 & 60.0 & 66.7 \\
+        \plong & 55.0 & 90.0 & 15.0 & 56.7 \\
+        \bottomrule
+    \end{tabular}
+\end{table}

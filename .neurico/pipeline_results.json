@@ -11,16 +11,16 @@
         "datasets_dir": "/workspaces/reasoning-trace-robustnes-318e-codex/datasets",
         "code_dir": "/workspaces/reasoning-trace-robustnes-318e-codex/code"
       },
-      "log_file": "/workspaces/reasoning-trace-robustnes-318e-codex/logs/resource_finder_codex.log",
-      "transcript_file": "/workspaces/reasoning-trace-robustnes-318e-codex/logs/resource_finder_codex_transcript.jsonl",
-      "elapsed_time": 618.374715089798
+      "log_file": "/workspaces/reasoning-trace-robustnes-318e-codex/logs/resource_finder_claude.log",
+      "transcript_file": "/workspaces/reasoning-trace-robustnes-318e-codex/logs/resource_finder_claude_transcript.jsonl",
+      "elapsed_time": 1657.3571164608002
     },
     "experiment_runner": {
       "success": true,
       "return_code": 0,
-      "elapsed_time": 1274.6639258861542,
-      "log_file": "/workspaces/reasoning-trace-robustnes-318e-codex/logs/execution_codex.log",
-      "transcript_file": "/workspaces/reasoning-trace-robustnes-318e-codex/logs/execution_codex_transcript.jsonl"
+      "elapsed_time": 4091.756247282028,
+      "log_file": "/workspaces/reasoning-trace-robustnes-318e-codex/logs/execution_claude.log",
+      "transcript_file": "/workspaces/reasoning-trace-robustnes-318e-codex/logs/execution_claude_transcript.jsonl"
     }
   },
   "work_dir": "/workspaces/reasoning-trace-robustnes-318e-codex"
