@@ -1,0 +1,7 @@
+\section{Conclusion}
+\label{sec:conclusion}
+We presented a controlled study of reasoning trace policies on \id and \ood benchmarks using real \gptfourone inference. The central empirical result is non-monotonic: \ood performance improves from no-trace to medium traces, then declines with very long traces. An uncertainty-triggered \adaptive policy achieves the best overall robustness-cost-calibration trade-off in our setting.
+
+The clearest quantitative finding is the \adaptive vs \none gap on \ood (+0.433, significant after multiple-comparison correction), while gains over stronger fixed CoT baselines remain positive but non-significant at current sample size. The practical takeaway is direct: avoid defaulting to either minimal or maximal verbosity; use adaptive trace budgeting with explicit calibration monitoring.
+
+Future work should scale \ood sample size, add repeated seeds and temperature sweeps, and test stronger uncertainty triggers (entropy/logprob/verifier-based) across model families.

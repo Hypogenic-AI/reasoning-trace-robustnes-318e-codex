@@ -1,0 +1,13 @@
+\section{Related Work}
+\label{sec:related}
+\para{Chain-of-thought and inference-time compute.}
+Chain-of-thought prompting and test-time sampling improve reasoning on many benchmarks \citep{wei2022chainofthought,wang2022selfconsistency}. Later work on long reasoning trajectories reports that additional compute can enable backtracking and error correction \citep{chen2025demystifying,ballon2026trajectories}. Our study keeps these benefits in view but asks whether greater verbosity remains beneficial under distribution shift.
+
+\para{Length control and overthinking.}
+Recent empirical and theoretical studies point to non-monotonic behavior. \citet{wu2025whenmoreisless} report inverted-U trends with task- and model-dependent optimal lengths. \citet{su2025underthinkingoverthinking} characterize overthinking on easier problems and underthinking on harder ones. Compression-oriented methods show substantial redundancy in CoT traces \citep{kang2024c3ot,xia2025tokenskip,lee2025tokencomplexity}. Unlike these works, we run a direct fixed-policy sweep plus adaptive escalation in one controlled harness.
+
+\para{Adaptive reasoning budgets.}
+Adaptive test-time compute is now a central theme in efficient reasoning \citep{zhang2025reasoningbudget}. RL-based methods such as L1 show that dynamic budget allocation can outperform strict fixed-length targets \citep{aggarwal2025l1}. We complement this line by testing a lightweight confidence-triggered adaptation policy that requires no retraining.
+
+\para{Robustness and calibration under trace interventions.}
+Robustness research shows that noisy or perturbed rationales can substantially degrade performance \citep{wang2024nora,vonrecum2026interventions}. Distribution-focused analyses further argue that CoT gains can be fragile under shift \citep{li2025mirage,shojaee2025illusion}. We connect this perspective to deployment policy selection by jointly measuring \ood accuracy, robustness gap, token cost, and calibration.

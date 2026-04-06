@@ -1,0 +1,17 @@
+\begin{table}[t]
+\centering
+\caption{Pairwise \ood comparison: \adaptive versus fixed policies. CI denotes paired bootstrap 95\% interval of accuracy difference.}
+\label{tab:pairwise}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Comparison} & \textbf{Acc Diff} & \textbf{95\% CI} & \textbf{McNemar $p$} & \textbf{BH $q$} \\
+\midrule
+\adaptive vs \none & +0.433 & [0.233, 0.633] & 0.0019 & 0.0078 \\
+\adaptive vs \short & +0.100 & [-0.033, 0.267] & 0.3711 & 0.4948 \\
+\adaptive vs \medium & +0.033 & [-0.100, 0.167] & 1.0000 & 1.0000 \\
+\adaptive vs \longp & +0.100 & [-0.033, 0.267] & 0.3711 & 0.4948 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}

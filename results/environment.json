@@ -1,0 +1,13 @@
+{
+  "python": "3.12.8 (main, Dec 19 2024, 14:33:20) [Clang 18.1.8 ]",
+  "platform": "Linux-5.15.0-139-generic-x86_64-with-glibc2.35",
+  "numpy": "2.4.4",
+  "pandas": "3.0.2",
+  "scipy": "1.17.1",
+  "matplotlib": "3.10.8",
+  "seaborn": "0.13.2",
+  "sklearn": "1.8.0",
+  "statsmodels": "0.14.6",
+  "openai": "2.30.0",
+  "datasets": "4.8.4"
+}

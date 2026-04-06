@@ -1,0 +1,34 @@
+\section{Methodology}
+\label{sec:methodology}
+\para{Problem setup.}
+Given an input $x$ and gold label $y$, a trace policy $\pi$ controls both prompt constraints and generation budget for reasoning text. We evaluate five policies:
+\none (final answer only), \short ($\leq 2$ concise steps), \medium ($\sim 4$--6 steps), \longp ($\geq 8$ detailed steps), and \adaptive (short first pass with confidence-triggered escalation).
+
+For each policy $\pi$, we report split accuracy
+\begin{equation}
+\mathrm{Acc}_{s}(\pi)=\frac{1}{|\mathcal{D}_{s}|}\sum_{i\in\mathcal{D}_{s}}\mathbb{1}[\hat{y}_{i,\pi}=y_i], \quad s\in\{\mathrm{ID},\mathrm{OOD}\},
+\end{equation}
+and robustness gap
+\begin{equation}
+\mathrm{Gap}(\pi)=\mathrm{Acc}_{\mathrm{ID}}(\pi)-\mathrm{Acc}_{\mathrm{OOD}}(\pi).
+\end{equation}
+Lower gap is better.
+
+\subsection{Datasets and Evaluation Slice}
+We use pre-downloaded benchmark datasets with a fixed seed ($42$): \gsm as \id and \arc, three \bbh tasks (date understanding, logical deduction with three objects, multistep arithmetic two), and \mathfive as \ood.
+The evaluation slice contains 48 examples total: 18 \id and 30 \ood (6 from each \ood dataset).
+
+Data quality checks show no missing questions, no missing gold labels, and no duplicate IDs in the evaluation slice. Answer types are numeric (24), multiple-choice letter (18), and short text (6).
+
+\subsection{Inference and Parsing Protocol}
+All policies use real \gptfourone API calls with temperature $0.2$ and a strict JSON output contract containing `reasoning', `final\_answer', `confidence', and `uncertainty\_note'.
+We normalize targets and predictions by answer type: numeric extraction for arithmetic-style datasets, option-letter extraction for multiple-choice tasks, and normalized string matching for text outputs (including strict matching fallback for \mathfive symbolic answers).
+
+\subsection{Adaptive Escalation Rule}
+\adaptive first runs the \short policy and reads self-reported confidence $c\in[0,1]$. If $c < \tau$, it triggers a second-pass long-form solve; otherwise it keeps the first answer. We set threshold $\tau=0.98$ to ensure non-trivial escalation behavior. In the observed run, second-pass invocation rate is approximately 10.4\%.
+
+\subsection{Metrics and Statistical Tests}
+We report: (i) accuracy on \id and \ood, (ii) robustness gap, (iii) average token usage, and (iv) calibration via Brier score and 10-bin \ece from self-reported confidence. For pairwise comparisons on shared \ood items, we compute paired bootstrap confidence intervals and McNemar tests with Benjamini--Hochberg correction.
+
+\subsection{Implementation Details}
+The evaluation harness is implemented in Python 3.12.8 with `openai' 2.30.0, `datasets' 4.8.4, `numpy' 2.4.4, `pandas' 3.0.2, `scipy' 1.17.1, and `statsmodels' 0.14.6. Full run time for 48 examples across five policies is about six minutes.

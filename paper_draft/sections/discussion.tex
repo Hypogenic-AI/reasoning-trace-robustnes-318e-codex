@@ -1,0 +1,16 @@
+\section{Discussion}
+\label{sec:discussion}
+\para{Interpretation.}
+Our results suggest that reasoning trace length is best treated as a controllable budget, not as a monotonic quality signal. Very short traces can under-allocate compute and fail under shift, while very long traces can add cost and worsen calibration without improving \ood accuracy. In this run, \adaptive offers a better balance by escalating only when uncertainty is high.
+
+\para{Relation to prior evidence.}
+The observed fixed-policy curve matches recent inverted-U and overthinking findings \citep{wu2025whenmoreisless,su2025underthinkingoverthinking}, and the adaptive advantage is aligned with adaptive compute results \citep{aggarwal2025l1,zhang2025reasoningbudget}. Our study contributes a controlled policy comparison that removes model-family and training confounds.
+
+\para{Practical implications.}
+For deployment teams, a simple confidence-triggered policy can improve robustness while limiting cost growth. The key operational lesson is to monitor robustness and calibration jointly: higher confidence and longer traces do not guarantee safer behavior.
+
+\para{Limitations.}
+This study uses one model, one temperature, and a small evaluation slice (48 total; 30 \ood), which limits statistical power for close comparisons. Confidence is self-reported, not externally calibrated. In addition, strict normalization on \mathfive may undercount semantically equivalent answers.
+
+\para{Broader implications.}
+Trace policy is a high-leverage deployment control. Better uncertainty signals (e.g., token-level entropy or verifier feedback) could support more reliable dynamic compute allocation. More generally, robustness evaluation should include distribution shift and calibration metrics, not only in-distribution accuracy.

@@ -1,0 +1,152 @@
+{
+  "by_policy_split": [
+    {
+      "policy": "adaptive",
+      "split_type": "id",
+      "n": 2,
+      "accuracy": 1.0,
+      "avg_total_tokens": 209.0,
+      "avg_latency_sec": 1.6116894483566284,
+      "brier": 0.0,
+      "ece": 0.0,
+      "confidence_mean": 1.0
+    },
+    {
+      "policy": "long",
+      "split_type": "id",
+      "n": 2,
+      "accuracy": 1.0,
+      "avg_total_tokens": 305.0,
+      "avg_latency_sec": 1.575896143913269,
+      "brier": 0.0,
+      "ece": 0.0,
+      "confidence_mean": 1.0
+    },
+    {
+      "policy": "medium",
+      "split_type": "id",
+      "n": 2,
+      "accuracy": 1.0,
+      "avg_total_tokens": 249.0,
+      "avg_latency_sec": 1.8113510608673096,
+      "brier": 0.0,
+      "ece": 0.0,
+      "confidence_mean": 1.0
+    },
+    {
+      "policy": "none",
+      "split_type": "id",
+      "n": 2,
+      "accuracy": 1.0,
+      "avg_total_tokens": 202.5,
+      "avg_latency_sec": 1.4697421789169312,
+      "brier": 0.125,
+      "ece": 0.25,
+      "confidence_mean": 0.75
+    },
+    {
+      "policy": "short",
+      "split_type": "id",
+      "n": 2,
+      "accuracy": 1.0,
+      "avg_total_tokens": 207.0,
+      "avg_latency_sec": 1.6819864511489868,
+      "brier": 0.0,
+      "ece": 0.0,
+      "confidence_mean": 1.0
+    },
+    {
+      "policy": "adaptive",
+      "split_type": "ood",
+      "n": 5,
+      "accuracy": 0.6,
+      "avg_total_tokens": 231.0,
+      "avg_latency_sec": 1.1725183963775634,
+      "brier": 0.34458,
+      "ece": 0.366,
+      "confidence_mean": 0.966
+    },
+    {
+      "policy": "long",
+      "split_type": "ood",
+      "n": 5,
+      "accuracy": 0.8,
+      "avg_total_tokens": 387.0,
+      "avg_latency_sec": 2.0658549785614015,
+      "brier": 0.20007999999999998,
+      "ece": 0.19600000000000006,
+      "confidence_mean": 0.9960000000000001
+    },
+    {
+      "policy": "medium",
+      "split_type": "ood",
+      "n": 5,
+      "accuracy": 0.4,
+      "avg_total_tokens": 308.0,
+      "avg_latency_sec": 1.675710964202881,
+      "brier": 0.45008,
+      "ece": 0.496,
+      "confidence_mean": 0.8960000000000001
+    },
+    {
+      "policy": "none",
+      "split_type": "ood",
+      "n": 5,
+      "accuracy": 0.4,
+      "avg_total_tokens": 211.4,
+      "avg_latency_sec": 1.6418329238891602,
+      "brier": 0.2,
+      "ece": 0.2,
+      "confidence_mean": 0.6
+    },
+    {
+      "policy": "short",
+      "split_type": "ood",
+      "n": 5,
+      "accuracy": 0.4,
+      "avg_total_tokens": 232.8,
+      "avg_latency_sec": 1.2017409801483154,
+      "brier": 0.5445800000000001,
+      "ece": 0.5660000000000001,
+      "confidence_mean": 0.966
+    }
+  ],
+  "robustness": [
+    {
+      "policy": "adaptive",
+      "id_accuracy": 1.0,
+      "ood_accuracy": 0.6,
+      "robustness_gap": 0.4
+    },
+    {
+      "policy": "long",
+      "id_accuracy": 1.0,
+      "ood_accuracy": 0.8,
+      "robustness_gap": 0.19999999999999996
+    },
+    {
+      "policy": "medium",
+      "id_accuracy": 1.0,
+      "ood_accuracy": 0.4,
+      "robustness_gap": 0.6
+    },
+    {
+      "policy": "none",
+      "id_accuracy": 1.0,
+      "ood_accuracy": 0.4,
+      "robustness_gap": 0.6
+    },
+    {
+      "policy": "short",
+      "id_accuracy": 1.0,
+      "ood_accuracy": 0.4,
+      "robustness_gap": 0.6
+    }
+  ],
+  "non_monotonicity_test": {
+    "method": "kendall_tau",
+    "tau": 0.7071067811865477,
+    "p_value": 0.17971249487899976,
+    "note": "tau near 1 indicates monotonic increase, near -1 monotonic decrease; near 0 suggests non-monotonic/no ordinal trend."
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "n_examples": 48,
+  "missing_question_pct": 0.0,
+  "missing_gold_pct": 0.0,
+  "duplicate_qid_count": 0,
+  "split_counts": {
+    "id": 18,
+    "ood": 30
+  },
+  "dataset_counts": {
+    "gsm8k": 18,
+    "arc_challenge": 6,
+    "bbh_date_understanding": 6,
+    "bbh_logical_deduction_three_objects": 6,
+    "bbh_multistep_arithmetic_two": 6,
+    "math500": 6
+  },
+  "answer_type_counts": {
+    "numeric": 24,
+    "choice": 18,
+    "text": 6
+  },
+  "samples": [
+    {
+      "dataset": "gsm8k",
+      "split_type": "id",
+      "qid": "gsm8k_test_588",
+      "answer_type": "numeric",
+      "question": "Jared is trying to increase his typing speed. He starts with 47 words per minute (WPM). After some lessons the next time he tests his typing speed it has increased to 52 WPM. If he continues to increase his typing speed once more by 5 words, what will be the average of the three measurements?",
+      "gold": "52"
+    },
+    {
+      "dataset": "gsm8k",
+      "split_type": "id",
+      "qid": "gsm8k_test_1214",
+      "answer_type": "numeric",
+      "question": "Jordan has 2 children who wear diapers.  Each child requires 5 diaper changes per day.  Jordan's wife changes half of the diapers.  How many diapers does Jordan change per day?",
+      "gold": "5"
+    },
+    {
+      "dataset": "gsm8k",
+      "split_type": "id",
+      "qid": "gsm8k_test_57",
+      "answer_type": "numeric",
+      "question": "A wooden bridge can carry no more than 5000 pounds. A delivery truck filled with identical boxes, each weighing 15 pounds, will pass over the bridge. The combined weight of the driver and the empty truck is 3755 pounds. What is the maximum number of boxes which can be loaded onto the truck while not exceeding the bridge's weight limit?",
+      "gold": "83"
+    }
+  ]
+}

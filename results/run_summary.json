@@ -1,0 +1,17 @@
+{
+  "timestamp_utc": "2026-04-06T03:10:47.105719+00:00",
+  "model": "gpt-4.1",
+  "temperature": 0.2,
+  "seed": 42,
+  "id_n": 18,
+  "ood_n_per_dataset": 6,
+  "n_examples": 48,
+  "policies": [
+    "none",
+    "short",
+    "medium",
+    "long",
+    "adaptive"
+  ],
+  "adapt_threshold": 0.98
+}

@@ -1,0 +1,888 @@
+You are an academic paper writer. Generate a complete NEURIPS style paper
+based on the experiment results provided.
+
+════════════════════════════════════════════════════════════════════════════════
+                         IMPORTANT: BEFORE YOU START
+════════════════════════════════════════════════════════════════════════════════
+
+Before writing any content, you MUST complete these steps:
+
+1. READ THE SKILL: Review the paper-writer skill at .codex/skills/paper-writer/SKILL.md
+2. READ THE STYLE GUIDE: Study templates/paper_writing/lab_style_guide.md carefully
+3. REVIEW EXAMPLES: Browse paper_examples/ for formatting and language patterns:
+   - Look at sections/1.introduction.tex for language style
+   - Look at tables/*.tex for table formatting
+   - Look at commands/*.tex for macro usage
+4. VERIFY COMMAND TEMPLATES: Command templates (math.tex, general.tex, macros.tex) are pre-copied to paper_draft/commands/
+
+CRITICAL: Reference example papers for FORMATTING and LANGUAGE STYLE only.
+Do NOT copy content, phrasing, or narrative structure from the example papers.
+The examples are in a different research domain - focus only on presentation style.
+
+════════════════════════════════════════════════════════════════════════════════
+                            EXPERIMENT REPORT
+════════════════════════════════════════════════════════════════════════════════
+
+# Reasoning Trace Length as a Proxy for Robustness: A Systematic Investigation
+
+## 1. Executive Summary
+This study tests whether longer reasoning traces always improve generalization, or whether there is a non-monotonic relationship between trace length and OOD robustness.
+
+Using real `gpt-4.1` API calls over a controlled ID/OOD benchmark mix (GSM8K ID; ARC/BBH/MATH-500 OOD), fixed trace policies (`none`, `short`, `medium`, `long`) and an uncertainty-triggered adaptive policy were compared under a single evaluation harness.
+
+Key result: on OOD data, `adaptive` achieved the best accuracy (0.800) and smallest robustness gap (0.200), while `none` collapsed to 0.367 OOD accuracy. Gains over `none` were statistically significant; gains over stronger fixed CoT baselines were positive but not significant at this sample size.
+
+Practical implication: very short/no-trace behavior is brittle under shift; very long traces are expensive and not best-performing; adaptive trace budgeting is the strongest operating point in this experiment.
+
+## 2. Goal
+
+### Hypothesis
+There exists a non-monotonic relationship between reasoning trace length and OOD robustness in LLMs, and uncertainty-informed adaptive trace-length control outperforms fixed-length policies for robustness-efficiency trade-offs.
+
+### Why This Is Important
+Inference-time trace policy is a deployment knob that directly affects reliability, cost, and latency. Teams often optimize only for short outputs or verbose CoT without robust OOD evidence.
+
+### Problem Solved
+This work provides a controlled, same-model evaluation of trace-length constraints and adaptive escalation, separating policy effects from model or dataset changes.
+
+### Expected Impact
+Results inform production policy selection for reasoning systems where OOD behavior and calibration matter.
+
+## 3. Data Construction
+
+### Dataset Description
+Sources (pre-downloaded in `datasets/`):
+- GSM8K (`datasets/gsm8k_main`) for ID arithmetic reasoning.
+- ARC-Challenge (`datasets/ai2_arc_challenge`) for science MCQ OOD.
+- BBH tasks (`datasets/bbh_date_understanding`, `datasets/bbh_logical_deduction_three_objects`, `datasets/bbh_multistep_arithmetic_two`) for OOD reasoning variants.
+- MATH-500 (`datasets/math500`) for harder math OOD.
+
+Evaluation subset (seed=42):
+- ID: 18 GSM8K test examples.
+- OOD: 6 examples from each OOD dataset (30 total).
+- Total examples: 48.
+
+### Example Samples
+| Dataset | Question (truncated) | Gold |
+|---|---|---|
+| GSM8K | &#34;Jared is trying to increase his typing speed...&#34; | `52` |
+| ARC | &#34;An astronomer observes that a planet rotates faster...&#34; | `C` |
+| BBH date | &#34;Today is Christmas Eve of 1937...&#34; | `(B)` |
+
+### Data Quality
+From `results/data_summary.json`:
+- Missing question values: 0.0%
+- Missing gold values: 0.0%
+- Duplicate IDs in evaluation slice: 0
+- Answer types: numeric 24, choice 18, text 6
+
+### Preprocessing Steps
+1. Loaded Arrow datasets with `datasets.load_from_disk`.
+2. Normalized gold answers by dataset:
+   - GSM8K: parse `####` final value.
+   - Choice tasks: parse option letter `(A-F)`.
+   - Numeric tasks: first numeric extraction.
+   - MATH-500: normalized string match fallback.
+3. Constructed a unified schema: `(dataset, split_type, qid, question, gold, answer_type)`.
+
+### Train/Val/Test Splits
+No model training was performed; this is pure inference-time evaluation.
+- ID slice sampled from benchmark test set.
+- OOD slice sampled from other benchmark test sets.
+
+## 4. Experiment Description
+
+### Methodology
+#### High-Level Approach
+Run identical examples through 5 trace policies using one model (`gpt-4.1`) with fixed temperature and parser:
+- `none`: final answer only.
+- `short`: &lt;=2 concise steps.
+- `medium`: ~4-6 steps.
+- `long`: &gt;=8 detailed steps.
+- `adaptive`: short probe + confidence; escalate to long when confidence &lt; threshold.
+
+#### Why This Method
+This directly manipulates trace length while holding model and dataset constant. It operationalizes adaptive trace control without requiring fine-tuning.
+
+Alternatives considered:
+- Multi-model comparison (rejected for confound reduction).
+- Full-benchmark exhaustive runs (deferred for cost/runtime).
+
+### Implementation Details
+#### Tools and Libraries
+From `results/environment.json`:
+- Python 3.12.8
+- openai 2.30.0
+- datasets 4.8.4
+- numpy 2.4.4
+- pandas 3.0.2
+- scipy 1.17.1
+- statsmodels 0.14.6
+- matplotlib 3.10.8
+- seaborn 0.13.2
+
+#### Algorithms/Models
+- Model: `gpt-4.1` (real API calls).
+- Output contract: strict JSON (`reasoning`, `final_answer`, `confidence`, `uncertainty_note`).
+- Evaluation: exact/normalized matching by answer type.
+
+#### Hyperparameters
+| Parameter | Value | Selection Method |
+|---|---:|---|
+| model | `gpt-4.1` | current recommended frontier API |
+| temperature | 0.2 | low-variance inference |
+| seed | 42 | reproducibility |
+| ID sample size | 18 | runtime-constrained preregistered subset |
+| OOD sample size per dataset | 6 | balanced OOD coverage |
+| adaptive threshold | 0.98 | tuned to ensure real escalation behavior |
+| max output tokens (`none`) | 80 | policy budget |
+| max output tokens (`short`) | 180 | policy budget |
+| max output tokens (`medium`) | 320 | policy budget |
+| max output tokens (`long`) | 700 | policy budget |
+
+### Experimental Protocol
+#### Reproducibility Information
+- Number of runs per policy: 1 pass over all examples.
+- Random seed: 42.
+- Hardware:
+  - GPUs detected: 2x NVIDIA GeForce RTX 3090 24GB (`results/gpu_info.csv`).
+  - Note: API-based inference; GPU not used for model inference.
+- End-to-end runtime (48 examples x 5 policies): ~6 minutes per full run.
+
+#### Evaluation Metrics
+- Accuracy: fraction correct.
+- Robustness gap: `ID accuracy - OOD accuracy`.
+- Token cost: average total tokens.
+- Calibration: Brier score and ECE (10 bins) from self-reported confidence.
+- Pairwise hypothesis testing: paired bootstrap CI and McNemar p-values (BH corrected).
+
+### Raw Results
+#### Main Table (ID/OOD)
+| Policy | ID Acc | OOD Acc | Robustness Gap | Avg Tokens (OOD) | OOD ECE |
+|---|---:|---:|---:|---:|---:|
+| none | 1.000 | 0.367 | 0.633 | 212.0 | 0.2167 |
+| short | 1.000 | 0.700 | 0.300 | 234.1 | 0.2663 |
+| medium | 1.000 | 0.767 | 0.233 | 299.6 | 0.1947 |
+| long | 1.000 | 0.700 | 0.300 | 381.4 | 0.2840 |
+| adaptive | 1.000 | **0.800** | **0.200** | 236.7 | **0.1823** |
+
+#### Pairwise OOD Tests (adaptive vs fixed)
+| Comparison | Accuracy Diff | 95% Bootstrap CI | McNemar p | BH q |
+|---|---:|---|---:|---:|
+| adaptive vs none | +0.433 | [0.233, 0.633] | 0.0019 | 0.0078 |
+| adaptive vs short | +0.100 | [-0.033, 0.267] | 0.3711 | 0.4948 |
+| adaptive vs medium | +0.033 | [-0.100, 0.167] | 1.0000 | 1.0000 |
+| adaptive vs long | +0.100 | [-0.033, 0.267] | 0.3711 | 0.4948 |
+
+#### Dataset-level OOD Accuracy Snapshot
+- ARC-Challenge: `none=0.000`, others mostly high.
+- BBH date_understanding: generally hardest across policies.
+- MATH-500 subset: weak for all policies; `none=0.000`, others ~0.5.
+
+#### Output Locations
+- Raw outputs: `results/raw_outputs.jsonl`
+- Run metadata: `results/run_summary.json`
+- Metrics: `results/metrics.json`
+- Pairwise tests: `results/pairwise_tests.json`
+- Plots: `results/plots/`
+
+## 5. Result Analysis
+
+### Key Findings
+1. `none` degrades sharply OOD (0.367), confirming that minimal/no-trace prompting is brittle under shift.
+2. `medium` and `adaptive` outperform `short` and `long` on OOD, consistent with a non-extreme optimum.
+3. `long` has the highest token cost and does not beat `medium` or `adaptive`.
+4. `adaptive` is best overall on OOD with lowest robustness gap and best OOD ECE.
+
+### Hypothesis Testing Results
+- H1 (non-monotonic tendency): supported directionally.
+  - Fixed-policy OOD scores: `none 0.367 -&gt; short 0.700 -&gt; medium 0.767 -&gt; long 0.700` (peak then drop).
+  - Kendall tau over fixed length ranks: `tau=0.548`, `p=0.279` (insufficient power for strict significance).
+- H2 (adaptive advantage): partially supported.
+  - Adaptive is top OOD performer; significantly better than `none`.
+  - Versus `medium`/`short`/`long`, improvements are positive but not significant at current N.
+- H3 (uncertainty behavior): supported.
+  - Long traces show poor OOD calibration despite high confidence (`ECE 0.284`, mean conf ~0.984).
+
+### Visualizations
+Generated in `results/plots/`:
+- `ood_accuracy_by_policy.png`
+- `robustness_gap_by_policy.png`
+- `token_usage_by_policy_split.png`
+- `confidence_vs_accuracy.png`
+
+### Surprises and Insights
+- All policies scored 1.0 on this ID slice (ceiling effect), making robustness gap mainly driven by OOD behavior.
+- Self-reported confidence is highly inflated for CoT-heavy modes; calibration remains weak even when accuracy rises.
+- Adaptive second-pass rate was low (~10.4%), indicating confidence thresholding can save tokens while retaining strong OOD results.
+
+### Error Analysis
+Representative failures (adaptive OOD):
+- BBH date questions with precise temporal offsets (often overconfident wrong date).
+- BBH logical deduction where answer format drifted from option letter to descriptive phrase.
+- MATH-500 symbolic expressions where exact-form normalization is brittle.
+
+### Limitations
+- Small sample size (48 questions) limits statistical power.
+- Single model/provider and single temperature setting.
+- Confidence is self-reported by the model, not externally calibrated.
+- MATH-500 text-match evaluation is strict and may undercount semantically equivalent answers.
+
+## 6. Conclusions
+Longer traces are not uniformly better. In this controlled run, OOD performance improved from no-trace to medium reasoning, then declined at very long traces, while adaptive policy achieved the best robustness-cost balance.
+
+Practically, teams should avoid defaulting to either minimal or maximal verbosity. A confidence-triggered adaptive strategy is a stronger default, with explicit calibration monitoring.
+
+Confidence level in findings: moderate. The directional pattern is clear, but larger-scale repeated runs are needed for stronger significance claims across all pairwise comparisons.
+
+## 7. Next Steps
+
+### Immediate Follow-ups
+1. Increase sample sizes (e.g., &gt;=200 OOD examples) for stronger hypothesis tests.
+2. Add repeated runs/seeds and temperature sweeps to quantify variance.
+3. Evaluate alternative adaptive triggers (entropy/logprob-based rather than self-reported confidence).
+
+### Alternative Approaches
+- Verifier-guided selection (PRM/ORM reranking) to disentangle trace quality from length.
+- Budget-matched search methods (e.g., slimmed self-consistency) for stronger adaptive baselines.
+
+### Broader Extensions
+- Extend to additional OOD axes: formatting perturbations, compositional depth shifts, adversarial paraphrases.
+- Compare model families (GPT-5 class, Claude Sonnet 4.5, Gemini 2.5 Pro) under identical protocol.
+
+### Open Questions
+- Which uncertainty signals are most reliable for escalation triggers?
+- Does optimal trace length depend more on task type or on latent instance difficulty?
+- How do these effects evolve at larger context windows and higher-capability models?
+
+## References
+- See `literature_review.md` and `papers/` for the reviewed bibliography used in planning.
+
+
+════════════════════════════════════════════════════════════════════════════════
+                            RESEARCH PLAN
+════════════════════════════════════════════════════════════════════════════════
+
+# Planning: Reasoning Trace Length as a Proxy for Robustness
+
+## Motivation &amp; Novelty Assessment
+
+### Why This Research Matters
+Reasoning traces are increasingly used as a control knob for inference quality, but practitioners often optimize either for shortest possible answers (cost/latency) or for maximal verbosity (perceived reasoning quality) without robust evidence under distribution shift. Understanding the true relationship between trace length and OOD performance matters for building reliable, cost-effective LLM systems in high-stakes reasoning tasks. The outcome directly informs inference-time policies for production agents where robustness, not just in-distribution accuracy, is the primary objective.
+
+### Gap in Existing Work
+From `literature_review.md`, prior work strongly supports chain-of-thought and test-time compute, but often confounds trace length with other factors (model scale, search strategy, verifier quality, or prompt family). Recent distribution-focused work (e.g., CoT-as-mirage framing) shows OOD fragility yet does not provide a simple controlled sweep of trace length budgets with matched settings and explicit uncertainty reporting. Adaptive trace control is discussed conceptually, but undercompared against strong fixed-length baselines at similar token budgets.
+
+### Our Novel Contribution
+We run a controlled, same-model study that explicitly manipulates reasoning trace-length constraints (`none`, `short`, `medium`, `long`) and compares them to an uncertainty-triggered adaptive policy under shared evaluation conditions. We jointly evaluate: (1) answer accuracy on ID and OOD sets, (2) robustness gap, (3) efficiency (token usage), and (4) uncertainty expression/calibration behavior. This directly tests non-monotonicity and whether adaptive length outperforms fixed policies.
+
+### Experiment Justification
+- Experiment 1: Fixed trace-length sweep on ID and OOD datasets.
+  - Why needed: isolates whether longer traces monotonically improve generalization.
+- Experiment 2: Adaptive trace-length policy conditioned on self-reported uncertainty.
+  - Why needed: tests whether dynamic allocation of reasoning budget beats fixed regimes.
+- Experiment 3: Calibration/uncertainty analysis by condition.
+  - Why needed: evaluates whether verbosity changes uncertainty quality, not only accuracy.
+- Experiment 4: Cost-performance comparison at matched token budgets.
+  - Why needed: ensures practical relevance and avoids recommending brittle expensive policies.
+
+## Research Question
+Does reasoning trace length have a non-monotonic effect on OOD robustness in LLMs, and can uncertainty-adaptive trace control improve robustness and calibration relative to fixed-length strategies?
+
+## Background and Motivation
+CoT and test-time compute methods improve many reasoning benchmarks, but evidence increasingly shows transfer failures when distribution shifts in format/composition/task type. We need a direct controlled study on trace-length budgets themselves. If the hypothesis holds, practitioners should use adaptive, uncertainty-aware reasoning depth rather than universally shorter or longer traces.
+
+## Hypothesis Decomposition
+- H1 (Non-monotonicity): OOD accuracy as a function of trace length is non-monotonic; extreme short and long regimes underperform an intermediate regime.
+- H2 (Adaptive advantage): Uncertainty-adaptive trace control exceeds best fixed-length baseline on OOD robustness gap and/or token-normalized performance.
+- H3 (Uncertainty behavior): Very long traces increase overconfidence or miscalibration relative to medium/adaptive traces.
+
+Independent variables:
+- Trace policy: `none`, `short`, `medium`, `long`, `adaptive`.
+- Dataset split type: ID vs OOD.
+
+Dependent variables:
+- Exact-match accuracy.
+- Robustness gap = ID accuracy - OOD accuracy.
+- Average completion tokens / prompt+completion tokens.
+- Calibration metrics from confidence estimates (ECE, Brier).
+
+Controls:
+- Same base model, temperature, parsing logic, and evaluation harness.
+- Fixed random seed for sample selection.
+
+Alternative explanations:
+- Prompt wording effects instead of length effects.
+- Parsing artifacts across datasets.
+- Provider-side variability over time.
+Mitigations: shared prompt skeleton, unified extraction rules, saved raw outputs and timestamps.
+
+## Proposed Methodology
+
+### Approach
+Use real LLM API calls on local benchmark subsets from the pre-gathered resources. Enforce trace-length regimes via explicit prompt constraints and a bounded max token budget. Evaluate across one in-domain arithmetic set and multiple OOD sets spanning different reasoning types.
+
+### Experimental Steps
+1. Load local datasets (GSM8K, ARC-Challenge, BBH tasks, MATH-500) and create standardized QA records.
+   - Rationale: heterogeneous OOD stress across math, science MCQ, and symbolic reasoning.
+2. Build evaluation sample: ID=GSM8K subset; OOD={ARC, BBH-date, BBH-logic, BBH-arithmetic, MATH-500 subset}.
+   - Rationale: controlled but feasible runtime with enough examples for inference.
+3. Implement prompt policies:
+   - `none`: direct final answer only.
+   - `short`: &lt;=2 concise reasoning steps.
+   - `medium`: ~4-6 steps.
+   - `long`: detailed &gt;=8-step reasoning.
+   - `adaptive`: first short attempt with confidence; if below threshold, rerun medium/long.
+4. Execute all policies over same examples; log outputs, usage tokens, confidence, parsed answers.
+5. Compute metrics and statistical tests; generate visualizations and tables.
+6. Perform error analysis on representative failures.
+
+### Baselines
+- Direct answer (`none`) as minimal-compute baseline.
+- Fixed-length `short`, `medium`, `long` as controlled interventions.
+- Adaptive policy as proposed method.
+
+### Evaluation Metrics
+- Accuracy (exact match / normalized match).
+- Robustness gap (ID-OOD).
+- Token cost (avg prompt, completion, total).
+- Cost-normalized accuracy (correct per 1k tokens).
+- Uncertainty quality: ECE (10 bins), Brier score, confidence-accuracy correlation.
+
+### Statistical Analysis Plan
+- Significance level α = 0.05.
+- Paired bootstrap CIs for accuracy differences (policy vs policy) on shared samples.
+- McNemar test for paired correctness differences where applicable.
+- Non-parametric Wilcoxon signed-rank for per-example confidence error differences.
+- Multiple comparison correction via Benjamini-Hochberg FDR for pairwise policy tests.
+
+## Expected Outcomes
+- Support hypothesis if medium/adaptive outperform both short and long on OOD.
+- Refute non-monotonicity if performance improves monotonically with length.
+- Strong support for adaptive control if it dominates fixed policies in robustness and token efficiency.
+
+## Timeline and Milestones
+- M1 (Planning): 20 min - finalize hypotheses and design.
+- M2 (Setup): 20 min - env, dependencies, metadata capture.
+- M3 (Implementation): 75 min - experiment/eval scripts.
+- M4 (Experiments): 75 min - run all policy conditions.
+- M5 (Analysis): 40 min - stats, plots, error analysis.
+- M6 (Documentation/validation): 30 min - REPORT, README, reproducibility checks.
+
+## Potential Challenges
+- API rate limits or intermittent failures.
+  - Mitigation: retry with backoff, caching JSONL outputs.
+- Parsing diverse answer formats.
+  - Mitigation: dataset-specific normalization and extraction rules.
+- Cost/time constraints for full benchmarks.
+  - Mitigation: preregistered subsampling with fixed seed and transparent reporting.
+- Confidence self-report bias.
+  - Mitigation: treat as behavioral signal, evaluate calibration empirically.
+
+## Success Criteria
+- Full experiment run completed with real model outputs saved.
+- All five policies evaluated on both ID and OOD slices.
+- Statistical tests and uncertainty analyses reported with CIs/p-values.
+- Reproducible pipeline and documented limitations in final report.
+
+
+════════════════════════════════════════════════════════════════════════════════
+                          LITERATURE REVIEW
+════════════════════════════════════════════════════════════════════════════════
+
+# Literature Review: Reasoning Trace Length as a Proxy for Robustness
+
+## Research Area Overview
+
+This review surveys the rapidly growing literature on the relationship between reasoning trace length (chain-of-thought length) and performance/robustness in large language models (LLMs). The research hypothesis posits a non-monotonic relationship between reasoning trace length and out-of-distribution (OOD) robustness: both overly short and overly verbose traces harm performance, and adaptive trace length controls informed by uncertainty will outperform fixed-length approaches.
+
+The literature strongly supports several aspects of this hypothesis while revealing important nuances. Key themes include: (1) the inverted U-shaped relationship between CoT length and accuracy, (2) overthinking and underthinking phenomena, (3) adaptive reasoning budgets, (4) token complexity as a per-problem metric, and (5) robustness of reasoning traces to perturbations.
+
+---
+
+## Key Papers
+
+### Paper 1: &#34;When More is Less: Understanding Chain-of-Thought Length in LLMs&#34;
+- **Authors**: Yuyang Wu, Yifei Wang, Tianqi Du, Stefanie Jegelka, Yisen Wang
+- **Year**: 2025 (arXiv:2502.07266), 149 citations
+- **Key Contribution**: Proves the inverted U-shaped relationship between CoT length and accuracy, with formal scaling laws.
+- **Methodology**: Real-world experiments (Qwen2.5, Llama3.1 across MATH/MMLU), controlled synthetic arithmetic tasks (GPT-2), and theoretical analysis with closed-form optimal length derivation.
+- **Datasets Used**: MATH Level 5, MMLU STEM, GPQA, LeetCode-2K, synthetic arithmetic.
+- **Results**:
+  - Accuracy follows inverted U-shape with CoT length. Both too-short and too-long traces degrade performance.
+  - Optimal length N* increases with task difficulty T but decreases with model capability M.
+  - For 72B model, gap between optimal-length and longest-CoT accuracy can reach 40%.
+  - RL training exhibits &#34;simplicity bias&#34; -- models converge to shorter CoTs as accuracy improves.
+  - Formally proved: N*(M,T) = TZ / [M(Z+1)] where Z = W_{-1}(-1 - T/(Ce)).
+- **Practical Methods**: Length-Filtered Vote (outperforms vanilla majority voting), optimal-length training data curation.
+- **Code Available**: No public repository.
+- **Relevance**: Directly establishes trace length as a causal performance factor, provides theoretical framework for optimal length prediction.
+
+### Paper 2: &#34;Between Underthinking and Overthinking: An Empirical Study of Reasoning Length and Correctness in LLMs&#34;
+- **Authors**: Jinyan Su, Jennifer Healey, Preslav Nakov, Claire Cardie
+- **Year**: 2025 (arXiv:2505.00127), 76 citations
+- **Key Contribution**: Empirically characterizes overthinking (excessive length on easy problems) and underthinking (insufficient length on hard problems).
+- **Methodology**: Sample-level and question-level analysis of 10 diverse responses per question with DeepSeek-R1-1.5B-Distill and DeepScaleR-1.5B-Preview.
+- **Datasets Used**: GSM8K (7,473 problems), MATH (7,500 problems).
+- **Results**:
+  - Strong negative correlation between response length and accuracy (Pearson = -0.72 on MATH).
+  - Incorrect responses average 6,000+ tokens vs &lt;3,000 for correct on MATH.
+  - Models detect moderate difficulty increases (extend reasoning) but fail on hard problems (underthinking).
+  - SimPO preference optimization (simply preferring shorter responses) reduces length 30-60% with minimal accuracy loss.
+  - Shortest response is already correct for &gt;60% of questions.
+- **Code Available**: No.
+- **Relevance**: Demonstrates asymmetric calibration failure -- length signals work in-distribution but break at capability frontier, directly relevant to OOD robustness.
+
+### Paper 3: &#34;L1: Controlling How Long A Reasoning Model Thinks With Reinforcement Learning&#34;
+- **Authors**: Pranjal Aggarwal, Sean Welleck (CMU)
+- **Year**: 2025 (arXiv:2503.04697), 286 citations, COLM 2025
+- **Key Contribution**: LCPO (Length Controlled Policy Optimization) for training models with controllable reasoning length. Discovers Short Reasoning Models (SRMs).
+- **Methodology**: RL-based training with length-aware rewards on DeepScaleR-1.5B. L1-Exact (match target) vs L1-Max (stay within budget).
+- **Datasets Used**: Training: DeepScaleR-Preview-Dataset (40K). Eval: AIME 2025, MATH, AMC, Olympiad-Bench, GPQA, LSAT, MMLU.
+- **Results**:
+  - L1-Max (adaptive) consistently outperforms L1-Exact (fixed) -- equal accuracy with 2x fewer tokens.
+  - 1.5B L1 surpasses GPT-4o at equal token budgets (~816 tokens: 47.8% vs 45.6%).
+  - Log-linear scaling: performance improves linearly with log-length.
+  - OOD generalization: linear scaling holds for GPQA and LSAT.
+  - Self-correction keywords appear 2x more in longer traces -- models adapt reasoning strategy, not just pad.
+- **Code Available**: https://cmu-l3.github.io/l1
+- **Relevance**: Strongest evidence that adaptive length control outperforms fixed-length, with OOD generalization.
+
+### Paper 4: &#34;How Well do LLMs Compress Their Own Chain-of-Thought? A Token Complexity Approach&#34;
+- **Authors**: Ayeong Lee, Ethan Che, Tianyi Peng
+- **Year**: 2025, 77 citations
+- **Key Contribution**: Introduces &#34;token complexity&#34; -- the minimal tokens required per problem. Universal accuracy-length tradeoff curve.
+- **Methodology**: Systematic study across diverse compression instructions (word limits, punctuation removal, &#34;be concise&#34;).
+- **Results**:
+  - Universal tradeoff between reasoning length and accuracy persists across distinct compression strategies.
+  - Sharp threshold behavior: each task has intrinsic token complexity below which accuracy collapses.
+  - Prompt-based compression operates far from information-theoretic limits.
+  - Adaptive compression (varying by difficulty) outperforms uniform compression.
+- **Code Available**: Unknown.
+- **Relevance**: Per-problem token complexity provides theoretical basis for adaptive trace length; sharp thresholds imply robustness analysis must be per-instance.
+
+### Paper 5: &#34;Can Language Models Perform Robust Reasoning in CoT Prompting with Noisy Rationales?&#34;
+- **Authors**: Bin Wang et al.
+- **Year**: 2024 (arXiv:2410.23856)
+- **Key Contribution**: NoRa benchmark for testing CoT robustness with irrelevant and inaccurate thoughts. CD-CoT (Contrastive Denoising CoT) method.
+- **Methodology**: Inject noisy rationales into CoT demonstrations; measure accuracy degradation.
+- **Datasets Used**: Arithmetic, symbolic, commonsense reasoning benchmarks.
+- **Results**:
+  - Irrelevant thoughts: 1.4%-19.8% accuracy drop. Inaccurate thoughts: 2.2%-40.4% drop.
+  - Longer rationale chains are more susceptible to noise accumulation.
+  - CD-CoT improves robustness by contrasting noisy and clean demonstrations.
+- **Code Available**: Yes.
+- **Relevance**: Directly tests robustness of reasoning under perturbation, showing length amplifies vulnerability to noise.
+
+### Paper 6: &#34;The Illusion of Thinking&#34;
+- **Authors**: Shojaee et al.
+- **Year**: 2025 (arXiv:2505.02279), 318 citations
+- **Key Contribution**: Three performance regimes for reasoning models across complexity levels.
+- **Results**:
+  - Low-complexity: standard models outperform LRMs (reasoning overhead is counterproductive).
+  - Medium-complexity: LRMs show advantage (additional thinking helps).
+  - High-complexity: both collapse completely.
+  - Counterintuitive: reasoning effort increases with complexity up to a point, then declines despite adequate token budget.
+- **Relevance**: Establishes complexity-dependent regimes where trace length relates to robustness differently.
+
+### Paper 7: &#34;Demystifying Long Chain-of-Thought Reasoning in LLMs&#34;
+- **Authors**: Chen et al.
+- **Year**: 2025 (arXiv:2502.03373)
+- **Key Contribution**: Studies how scaling inference compute enhances reasoning, with long CoTs enabling backtracking and error correction.
+- **Results**: Noisy, web-extracted solutions show strong potential for OOD tasks (STEM reasoning).
+- **Relevance**: Connects long CoT with self-correction capabilities and OOD transfer.
+
+### Paper 8: &#34;Stop Overthinking: A Survey on Efficient Reasoning for Large Language Models&#34;
+- **Authors**: Sui et al.
+- **Year**: 2025 (arXiv:2503.16419)
+- **Key Contribution**: Comprehensive survey categorizing efficient reasoning approaches.
+- **Categories**: Model-based (RL training, distillation), output-based (compression, early exit), input-based (prompt design).
+- **Relevance**: Provides taxonomy of all methods for reasoning length control.
+
+### Paper 9: &#34;Reasoning on a Budget: A Survey of Adaptive Test-Time Compute in LLMs&#34;
+- **Authors**: Zhang et al.
+- **Year**: 2025 (arXiv:2507.02076)
+- **Key Contribution**: Distinguishes L1 controllability (fixed budget) from L2 adaptiveness (dynamic scaling).
+- **Relevance**: Framework for categorizing adaptive vs fixed length approaches.
+
+### Paper 10: &#34;Are Reasoning LLMs Robust to Interventions on Their Chain-of-Thought?&#34;
+- **Authors**: von Recum, Girrbach, Akata
+- **Year**: 2026
+- **Key Contribution**: Controlled framework for perturbing reasoning traces at fixed timesteps.
+- **Results**:
+  - RLLMs are generally robust, recovering from diverse perturbations.
+  - Robustness improves with model size, degrades when interventions occur early.
+  - Adversarial noise inflates CoT length by &gt;200%; paraphrasing shortens but harms accuracy.
+  - Doubt expressions are central recovery mechanism.
+- **Relevance**: Directly tests reasoning trace robustness; shows length inflation as a response to perturbation.
+
+### Paper 11: &#34;Probing the Trajectories of Reasoning Traces in LLMs&#34;
+- **Authors**: Ballon et al.
+- **Year**: 2026 (arXiv:2601.23163)
+- **Key Contribution**: Protocol for probing reasoning traces by truncating at fixed token-percentiles.
+- **Results**:
+  - Accuracy and decision commitment consistently increase as reasoning token percentage grows.
+  - Gains driven by relevant content, not just context length or &#34;reasoning style&#34; effects.
+  - Stronger models successfully backtrack from incorrect partial traces.
+- **Relevance**: Provides methodology for measuring how partial traces affect robustness.
+
+### Paper 12: &#34;The Impact of Reasoning Step Length on Large Language Models&#34;
+- **Authors**: Mingyu Jin et al.
+- **Year**: 2024, 171 citations
+- **Key Contribution**: First systematic study showing longer reasoning steps improve LLM abilities.
+- **Results**:
+  - Lengthening steps (even without new information) enhances reasoning.
+  - Even incorrect rationales yield favorable outcomes if they maintain requisite length.
+  - Advantages are task-dependent: simple tasks need fewer steps, complex tasks benefit from longer sequences.
+- **Code Available**: https://github.com/MingyuJ666/The-Impact-of-Reasoning-Step-Length-on-Large-Language-Models
+- **Relevance**: Foundational work establishing length as a key variable in CoT effectiveness.
+
+### Paper 13: &#34;Is Chain-of-Thought Reasoning a Mirage? A Data Distribution Lens&#34;
+- **Authors**: Li et al.
+- **Year**: 2025 (arXiv:2508.01191)
+- **Key Contribution**: CoT reasoning is brittle when pushed beyond training distributions.
+- **Results**: CoT effectiveness is governed by distribution discrepancy between training and test data.
+- **Relevance**: Directly connects CoT (and its length properties) to OOD robustness.
+
+### Paper 14: &#34;C3oT: Generating Shorter Chain-of-Thought without Compromising Effectiveness&#34;
+- **Authors**: Kang et al.
+- **Year**: 2024, 151 citations
+- **Key Contribution**: CoT compression framework achieving 50%+ length reduction without accuracy loss.
+- **Methodology**: Compressor + conditioned training + conditioned inference.
+- **Datasets Used**: 4 datasets from arithmetic and commonsense scenarios.
+- **Relevance**: Demonstrates substantial redundancy in standard CoT, practical compression baseline.
+
+### Paper 15: &#34;TokenSkip: Controllable Chain-of-Thought Compression in LLMs&#34;
+- **Authors**: Xia et al.
+- **Year**: 2025, 192 citations
+- **Key Contribution**: Token-level importance analysis for selective CoT compression.
+- **Results**: 40% token reduction on GSM8K with &lt;0.4% accuracy drop using Qwen2.5-14B.
+- **Code Available**: https://github.com/hemingkx/TokenSkip
+- **Relevance**: Controllable compression baseline for experiments.
+
+### Paper 16: &#34;Consistency of Large Reasoning Models Under Multi-Turn Attacks&#34;
+- **Authors**: Yubo Li et al.
+- **Year**: 2026
+- **Key Contribution**: Tests reasoning model robustness under adversarial pressure.
+- **Results**: Extended reasoning traces induce overconfidence; confidence-based defenses fail for reasoning models.
+- **Relevance**: Shows trace length can create false sense of robustness through overconfidence.
+
+---
+
+## Common Methodologies
+
+1. **Sampling-based analysis**: Generate multiple responses per question, analyze length-accuracy relationships (Su2025, Wu2025, Aggarwal2025).
+2. **RL-based length control**: GRPO/PPO with length-aware rewards (L1, IBPO, CRT, CEEH).
+3. **Compression/distillation**: Shorten CoT while preserving accuracy (C3oT, TokenSkip, LiteCoT, TokenSqueeze).
+4. **Perturbation testing**: Inject noise/interventions into reasoning traces (NoRa, von Recum2026).
+5. **Information-theoretic analysis**: Token complexity, entropy-based adaptive strategies (Lee2025, CEEH).
+
+## Standard Baselines
+
+- **Vanilla CoT**: Standard chain-of-thought prompting without length control.
+- **Self-Consistency / Majority Voting**: Sample multiple responses and vote.
+- **S1 (Budget Forcing)**: Truncate reasoning at a fixed token budget (baseline for L1).
+- **No-Thinking**: Direct answer without CoT reasoning.
+- **DeepSeek-R1**: Strong reasoning model baseline.
+
+## Evaluation Metrics
+
+- **Accuracy / Pass@1**: Primary metric for reasoning quality.
+- **Token count / Response length**: Measured in tokens or reasoning steps.
+- **Accuracy-length tradeoff curves**: Plot accuracy vs token budget (log-linear scaling).
+- **Overthinking Score**: Harmonic mean of accuracy and token-efficiency (Srivastava2025).
+- **Token complexity**: Minimum tokens for reliable problem solving (Lee2025).
+- **Consistency metrics**: Agreement across samples, self-verification rates.
+
+## Datasets in the Literature
+
+| Dataset | Type | Used In | Notes |
+|---------|------|---------|-------|
+| GSM8K | Grade-school math (8.5K) | Su2025, many others | Primary easy-medium math benchmark |
+| MATH / MATH-500 | Competition math (12.5K/500) | Wu2025, Aggarwal2025 | Hard math benchmark, 5 difficulty levels |
+| GPQA Diamond | Graduate-level science (448) | Wu2025, Aggarwal2025 | OOD reasoning benchmark |
+| MMLU STEM | Multi-subject QA | Wu2025, Aggarwal2025 | OOD evaluation |
+| AQuA | Algebraic word problems | Xie2023 | Reasoning benchmark |
+| StrategyQA | Multi-hop yes/no | Xie2023 | Commonsense reasoning |
+| ARC-Challenge | Science QA | Various | Science reasoning benchmark |
+| AIME 2024/2025 | Math olympiad | Aggarwal2025 | Very hard math, OOD test |
+| CommonsenseQA | Commonsense reasoning | Various | OOD commonsense evaluation |
+
+## Gaps and Opportunities
+
+1. **No systematic study of trace length x OOD robustness**: Papers study length-accuracy tradeoffs or OOD robustness separately, but rarely both jointly. The proposed research fills this gap.
+2. **Uncertainty-informed adaptive length**: While adaptive methods exist (L1-Max, SelfBudgeter), none explicitly use model uncertainty to determine optimal trace length.
+3. **Task-distribution-dependent optimal length**: Wu2025&#39;s scaling law N*(M,T) provides a starting point, but how T should be estimated for OOD inputs remains open.
+4. **Robustness-efficiency Pareto frontier**: How to jointly optimize for accuracy, robustness to distribution shift, and token efficiency is unexplored.
+5. **Per-instance length prediction for robustness**: Token complexity (Lee2025) suggests per-problem minimum lengths exist, but using these to predict OOD robustness hasn&#39;t been attempted.
+
+## Recommendations for Our Experiment
+
+### Recommended Datasets
+1. **GSM8K** (in-distribution math) -- well-studied, clear answers, good baseline.
+2. **MATH-500** (harder math, OOD for GSM8K-trained models) -- standard benchmark with difficulty levels.
+3. **MMLU STEM** (cross-domain OOD) -- tests generalization beyond math.
+4. **ARC-Challenge** (science reasoning, OOD) -- different reasoning domain.
+5. **CommonsenseQA** (commonsense, OOD) -- very different from mathematical reasoning.
+6. **StrategyQA** (multi-hop reasoning, OOD) -- tests compositional reasoning.
+
+### Recommended Baselines
+1. **Fixed-length approaches**: Budget forcing (S1), token budget prompting.
+2. **Adaptive approaches**: L1-Max style adaptive allocation, difficulty-aware prompting.
+3. **No-length-control**: Vanilla CoT (let model choose length freely).
+4. **Compression baselines**: TokenSkip, C3oT, simple truncation.
+
+### Recommended Metrics
+1. **Accuracy vs. token length curves** (per dataset, especially comparing ID vs OOD).
+2. **Robustness gap**: Accuracy(ID) - Accuracy(OOD) at each length setting.
+3. **Optimal length ratio**: N*(OOD) / N*(ID) to quantify how optimal length shifts.
+4. **Length-robustness correlation**: Pearson/Spearman between trace length and OOD accuracy.
+5. **Overthinking/underthinking rates**: Fraction of problems where model uses suboptimal length.
+
+### Methodological Considerations
+- Use multiple seeds/samples per question (N=10+) for statistical reliability.
+- Control for model capability by testing across model sizes (1.5B, 7B, 14B+).
+- Measure uncertainty (entropy, perplexity) alongside trace length to test uncertainty-informed adaptive control.
+- Define clear ID/OOD splits: train-domain math (GSM8K) -&gt; OOD targets (MATH, MMLU, ARC, etc.).
+- Consider both prompt-based and RL-based length control mechanisms.
+
+
+════════════════════════════════════════════════════════════════════════════════
+                          PAPER REQUIREMENTS
+════════════════════════════════════════════════════════════════════════════════
+
+Generate a complete academic paper with the following structure:
+
+1. TITLE
+   - Clear, specific, informative
+   - Should convey main finding or contribution
+
+2. AUTHOR
+   - Use this exact author line in the \author{} block: NeuriCo
+
+3. ABSTRACT (150-250 words)
+   - Problem statement
+   - Approach
+   - Key results
+   - Significance
+
+4. INTRODUCTION
+   - Research problem and motivation
+   - Gap in existing work
+   - Our contribution (be specific)
+   - Paper organization
+
+5. RELATED WORK
+   - Organized by theme/approach
+   - Position our work relative to prior work
+   - Cite papers from literature review
+
+6. METHODOLOGY
+   - Clear description of approach
+   - Experimental setup
+   - Datasets used
+   - Evaluation metrics
+   - Baselines
+
+7. RESULTS
+   - Present results with tables and figures
+   - Statistical analysis
+   - Comparison to baselines
+   - Ablation studies (if applicable)
+
+8. DISCUSSION
+   - Interpretation of results
+   - Limitations
+   - Broader implications
+
+9. CONCLUSION
+   - Summary of contributions
+   - Key findings
+   - Future work
+
+10. REFERENCES
+   - BibTeX format
+   - All cited papers
+
+════════════════════════════════════════════════════════════════════════════════
+                          OUTPUT FORMAT
+════════════════════════════════════════════════════════════════════════════════
+
+Create a MODULAR LaTeX project with the following directory structure:
+
+paper_draft/
+├── main.tex              # Main file that imports all sections
+├── references.bib        # BibTeX references
+├── sections/
+│   ├── abstract.tex      # Abstract content
+│   ├── introduction.tex  # Introduction section
+│   ├── related_work.tex  # Related work section
+│   ├── methodology.tex   # Methodology section
+│   ├── results.tex       # Results section
+│   ├── discussion.tex    # Discussion section
+│   └── conclusion.tex    # Conclusion section
+├── figures/              # Directory for any generated figures
+├── tables/               # Directory for complex standalone tables
+└── appendix/             # Directory for appendix sections (if needed)
+
+INSTRUCTIONS:
+1. First, create the directory structure above (mkdir -p paper_draft/sections paper_draft/figures paper_draft/tables paper_draft/appendix)
+2. Write main.tex using the EXACT preamble for NEURIPS:
+
+   \documentclass{article}
+   \usepackage[final]{neurips_2025}  % NEURIPS style (neurips_2025.sty is in paper_draft/)
+   \usepackage[hidelinks]{hyperref}  % REQUIRED: clickable links
+   \usepackage{booktabs}  % REQUIRED: professional tables
+   \usepackage{graphicx}
+   \usepackage{amsmath,amssymb}
+
+   % Import command files
+   \input{commands/math}
+   \input{commands/general}
+   \input{commands/macros}
+
+   % Use this bibliography style:
+   \bibliographystyle{plainnat}
+
+   \author{NeuriCo}
+
+   - Use \input{sections/...} to include each section
+   - Use \bibliography{references} for references
+3. Write each section file with COMPLETE content (no placeholders)
+4. Each section file should include its \section{} command
+5. Write references.bib with all citations in BibTeX format
+6. After writing all files, compile the paper:
+   cd paper_draft && pdflatex -interaction=nonstopmode main.tex && bibtex main && pdflatex -interaction=nonstopmode main.tex && pdflatex -interaction=nonstopmode main.tex
+
+This modular structure allows humans to easily:
+- Edit individual sections without navigating a large file
+- Track changes per section
+- Reuse sections across different paper versions
+
+════════════════════════════════════════════════════════════════════════════════
+                          QUALITY REQUIREMENTS
+════════════════════════════════════════════════════════════════════════════════
+
+- Academic tone throughout
+- All claims must be supported by data from the experiment report
+- Proper citations using \cite{} commands
+- Clear figures and tables with proper captions
+- NO placeholder text - every section must have real content
+- The paper MUST compile without errors
+- If compilation fails, debug and fix the LaTeX errors
+
+════════════════════════════════════════════════════════════════════════════════
+                          LAB WRITING STYLE
+════════════════════════════════════════════════════════════════════════════════
+
+Follow these lab-specific conventions to match our paper style:
+
+1. LANGUAGE STYLE:
+   - Use active voice: "We propose", "We examine", "We focus on"
+   - Be direct and confident: "Our main question is...", "We hypothesize that..."
+   - State things clearly and simply - prefer plain language over jargon
+   - Use bold questions as paragraph organizers: {\bf what is X?}
+   - Include specific quantitative claims: "8.97% over baseline"
+   - Avoid fancy wording: "utilize" → "use", "facilitate" → "help"
+
+2. INTRODUCTION STRUCTURE:
+   - Engaging hook (get to the point quickly)
+   - Problem importance
+   - Gap identification
+   - Your approach with method figure reference
+   - Quantitative preview of results
+   - Contribution bullets (3-4 items, action verbs)
+
+3. CONTRIBUTION LISTS:
+   \begin{itemize}[leftmargin=*,itemsep=0pt,topsep=0pt]
+       \item We propose...
+       \item We conduct...
+       \item We complement...
+   \end{itemize}
+
+4. MODULAR COMMANDS STRUCTURE:
+   Command templates are pre-copied to paper_draft/commands/:
+   - math.tex: Math notation macros
+   - general.tex: Formatting macros
+   - macros.tex: Project-specific term definitions (customize this for your paper)
+
+   In main.tex, include:
+   \input{commands/math}
+   \input{commands/general}
+   \input{commands/macros}
+
+5. REFERENCE CONVENTIONS:
+   Use reference macros from math.tex:
+   - \figref{fig:name} for "figure 1" (lowercase, in-sentence)
+   - \Figref{fig:name} for "Figure 1" (capitalized, start of sentence)
+   - \secref{sec:name} for "section 2"
+
+6. TEXT FORMATTING:
+   - Use \para{Header text} for bold paragraph headers
+   - Define method/dataset names with \textsc and \xspace:
+     \newcommand{\methodname}{\textsc{MethodName}\xspace}
+
+7. TABLE FORMATTING:
+   - Use booktabs package (no vertical lines)
+   - Use \resizebox{\textwidth}{!}{...} for wide tables
+   - Use @{} to remove padding at table edges
+   - Use \cmidrule(lr){x-y} for sub-headers
+   - Use \textsc{} for dataset/method names in headers
+   - Bold best results with {\bf ...}
+
+8. FIGURE FORMATTING:
+   - Use 0.32\textwidth for 3-column subfigures
+   - Use 0.95\linewidth for full-width figures
+   - Use \input{figures/legend} for shared legends
+   - Write self-contained captions explaining key observations
+
+9. RESULTS PRESENTATION:
+   - Define \increase and \decrease for colored arrows (green up, red down)
+   - Bold best results in tables
+   - Report confidence intervals when available
+
+10. ALGORITHM STYLING:
+    - Use algpseudocode with [noend]
+    - Use \triangleright for comments
+
+11. HYPERLINKS (REQUIRED):
+    - Always use \usepackage[hidelinks]{hyperref} or with colored links
+    - All citations, section refs, figure refs, table refs must be clickable
+    - This is essential for reader navigation
+
+════════════════════════════════════════════════════════════════════════════════
+                          WORKFLOW: REVIEW AND REFLECT
+════════════════════════════════════════════════════════════════════════════════
+
+Before calling finish, you MUST complete these review steps:
+
+1. REVIEW RESOURCES (at the start):
+   - Read .codex/skills/paper-writer/SKILL.md for detailed guidance
+   - Study templates/paper_writing/lab_style_guide.md for style conventions
+   - Browse paper_examples/ for formatting and language patterns
+
+2. SELF-REFLECTION (before finishing):
+   After writing all sections, review your work against these criteria:
+
+   LANGUAGE CHECK:
+   - [ ] Is the writing clear and jargon-free?
+   - [ ] Are claims specific with quantitative support?
+   - [ ] Is active voice used throughout?
+
+   FORMATTING CHECK:
+   - [ ] Does main.tex include \input{commands/math}, \input{commands/general}, \input{commands/macros}?
+   - [ ] Is hyperref package included for clickable references?
+   - [ ] Do tables use booktabs (no vertical lines)?
+   - [ ] Are best results bolded in tables?
+   - [ ] Are figures/tables properly captioned?
+
+   STRUCTURE CHECK:
+   - [ ] Does introduction follow: hook → importance → gap → approach → preview → contributions?
+   - [ ] Are contribution bullets specific with action verbs?
+   - [ ] Does the paper compile without errors?
+
+3. FIX ISSUES:
+   - Address any issues found in the self-reflection
+   - Re-compile and verify the PDF looks correct
+
+Only after completing this review should you consider the paper finished.

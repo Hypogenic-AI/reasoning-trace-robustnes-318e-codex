@@ -1,0 +1,15 @@
+PDF: papers/2023_2305.20050v1_let_s_verify_step_by_step.pdf
+Total pages: 29
+Pages per chunk: 3
+
+Chunks:
+  2023_2305.20050v1_let_s_verify_step_by_step_chunk_001.pdf: pages 1-3
+  2023_2305.20050v1_let_s_verify_step_by_step_chunk_002.pdf: pages 4-6
+  2023_2305.20050v1_let_s_verify_step_by_step_chunk_003.pdf: pages 7-9
+  2023_2305.20050v1_let_s_verify_step_by_step_chunk_004.pdf: pages 10-12
+  2023_2305.20050v1_let_s_verify_step_by_step_chunk_005.pdf: pages 13-15
+  2023_2305.20050v1_let_s_verify_step_by_step_chunk_006.pdf: pages 16-18
+  2023_2305.20050v1_let_s_verify_step_by_step_chunk_007.pdf: pages 19-21
+  2023_2305.20050v1_let_s_verify_step_by_step_chunk_008.pdf: pages 22-24
+  2023_2305.20050v1_let_s_verify_step_by_step_chunk_009.pdf: pages 25-27
+  2023_2305.20050v1_let_s_verify_step_by_step_chunk_010.pdf: pages 28-29

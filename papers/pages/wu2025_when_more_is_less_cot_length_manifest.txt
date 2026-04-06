@@ -1,0 +1,9 @@
+PDF: papers/wu2025_when_more_is_less_cot_length.pdf
+Total pages: 11
+Pages per chunk: 3
+
+Chunks:
+  wu2025_when_more_is_less_cot_length_chunk_001.pdf: pages 1-3
+  wu2025_when_more_is_less_cot_length_chunk_002.pdf: pages 4-6
+  wu2025_when_more_is_less_cot_length_chunk_003.pdf: pages 7-9
+  wu2025_when_more_is_less_cot_length_chunk_004.pdf: pages 10-11

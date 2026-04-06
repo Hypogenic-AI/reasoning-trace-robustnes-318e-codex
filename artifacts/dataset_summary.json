@@ -1,0 +1,23 @@
+{
+  "gsm8k/main": {
+    "train": 7473,
+    "test": 1319
+  },
+  "HuggingFaceH4/MATH-500": {
+    "test": 500
+  },
+  "allenai/ai2_arc:ARC-Challenge": {
+    "train": 1119,
+    "test": 1172,
+    "validation": 299
+  },
+  "lukaemon/bbh:multistep_arithmetic_two": {
+    "test": 250
+  },
+  "lukaemon/bbh:logical_deduction_three_objects": {
+    "test": 250
+  },
+  "lukaemon/bbh:date_understanding": {
+    "test": 250
+  }
+}

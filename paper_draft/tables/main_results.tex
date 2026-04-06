@@ -1,0 +1,18 @@
+\begin{table}[t]
+\centering
+\caption{Main policy comparison on \id/\ood evaluation. Best \ood robustness-calibration operating point is in \textbf{bold}.}
+\label{tab:main}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+\textbf{Policy} & \textbf{ID Acc} & \textbf{OOD Acc} & \textbf{Robustness Gap} & \textbf{Avg Tokens (OOD)} & \textbf{OOD ECE} \\
+\midrule
+\none & 1.000 & 0.367 & 0.633 & 212.0 & 0.2167 \\
+\short & 1.000 & 0.700 & 0.300 & 234.1 & 0.2663 \\
+\medium & 1.000 & 0.767 & 0.233 & 299.6 & 0.1947 \\
+\longp & 1.000 & 0.700 & 0.300 & 381.4 & 0.2840 \\
+\adaptive & 1.000 & \textbf{0.800} & \textbf{0.200} & 236.7 & \textbf{0.1823} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
